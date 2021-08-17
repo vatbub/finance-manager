@@ -19,6 +19,7 @@
  */
 package com.github.vatbub.finance.manager
 
+import com.github.vatbub.finance.manager.Currency.Euro
 import javafx.stage.FileChooser
 import javafx.stage.Stage
 import java.io.File
@@ -59,7 +60,10 @@ class ConsorsbankCsvUserFlow : ImportSourceUserFlow {
                     parts[6].nullIfEmpty(),
                     parts[7].nullIfEmpty()?.toTransactionCategory(),
                     parts[8].nullIfEmpty()?.let { listOf(it) } ?: listOf(),
-                    parts[10].nullIfEmpty()?.replace(".", "")?.replace(",", ".")?.toDouble() ?: 0.00
+                    CurrencyAmount(
+                        amount = parts[10].nullIfEmpty()?.replace(".", "")?.replace(",", ".")?.toDouble() ?: 0.00,
+                        currency = Euro
+                    )
                 )
             }
     }

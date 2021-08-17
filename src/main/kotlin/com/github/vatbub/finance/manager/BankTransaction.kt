@@ -47,7 +47,6 @@ data class BankTransaction(
 
 typealias IBAN = String
 typealias BIC = String
-typealias CurrencyAmount = Double
 
 fun List<BankTransaction>.calculateSimilarities() = associateWith { transaction ->
     this.filter { otherTransaction -> transaction != otherTransaction }

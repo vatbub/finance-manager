@@ -42,6 +42,12 @@ fun List<String>.similarityTo(other: List<String>): Double {
     }.average()
 }
 
+fun CurrencyAmount?.similarityTo(other: CurrencyAmount?): Double {
+    if (this == null || other == null) return 0.0
+    if (this.currency!=other.currency) return  0.0
+    return this.amount.similarityTo(other.amount)
+}
+
 fun Double?.similarityTo(other: Double?): Double {
     if (this == null || other == null) return 0.0
     if (this == other) return 1.0

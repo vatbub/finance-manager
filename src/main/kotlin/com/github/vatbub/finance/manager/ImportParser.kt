@@ -19,33 +19,22 @@
  */
 package com.github.vatbub.finance.manager
 
-import com.github.vatbub.finance.manager.Currency.Euro
-import javafx.stage.FileChooser
-import javafx.stage.Stage
+import com.github.vatbub.finance.manager.model.BankTransaction
+import com.github.vatbub.finance.manager.model.Currency.Euro
+import com.github.vatbub.finance.manager.model.CurrencyAmount
+import com.github.vatbub.finance.manager.model.toTransactionCategory
 import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-interface ImportSourceUserFlow {
-    fun initiateImportUserFlow(stage: Stage)
-    fun parse(): List<BankTransaction>
+interface ImportParser {
+    operator fun invoke(source:File): List<BankTransaction>
 }
 
-class ConsorsbankCsvUserFlow : ImportSourceUserFlow {
-    private var sourceFile: File? = null
-
-    override fun initiateImportUserFlow(stage: Stage) {
-        val fileChooser = FileChooser().apply {
-            title = "Choose Consorsbank CSV file..."
-            initialDirectory = File(".")
-        }
-        sourceFile = fileChooser.showOpenDialog(stage)
-    }
-
-    override fun parse(): List<BankTransaction> {
-        val sourceFile = sourceFile ?: return listOf()
-        return sourceFile
+object ConsorsbankCsvParser : ImportParser {
+    override fun invoke(source: File): List<BankTransaction> {
+        return source
             .readLines()
             .drop(1)
             .map { line ->

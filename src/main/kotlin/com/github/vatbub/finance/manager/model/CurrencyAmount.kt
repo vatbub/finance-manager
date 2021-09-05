@@ -17,12 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package com.github.vatbub.finance.manager
+package com.github.vatbub.finance.manager.model
 
-fun List<Double>.normalize(): List<Double> {
-    val minValue = this.minOrNull() ?: return this
-    val maxValue = this.maxOrNull() ?: return this
-    return this.map {
-        (it - minValue) / (maxValue - minValue)
-    }
+data class CurrencyAmount(val amount: Double, val currency: Currency){
+    override fun toString() = "$amount $currency"
+}
+
+enum class Currency {
+    Euro
 }

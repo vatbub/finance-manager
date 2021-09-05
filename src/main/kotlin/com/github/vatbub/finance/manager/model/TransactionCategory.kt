@@ -17,9 +17,9 @@
  * limitations under the License.
  * #L%
  */
-package com.github.vatbub.finance.manager
+package com.github.vatbub.finance.manager.model
 
-import com.github.vatbub.finance.manager.TransactionCategory.*
+import com.github.vatbub.finance.manager.model.TransactionCategory.*
 
 enum class TransactionCategory {
     Food, Unknown, Electronics, Rent, Transport, Entertainment, Insurances, Salary, Medical, Phone, OtherShopping,

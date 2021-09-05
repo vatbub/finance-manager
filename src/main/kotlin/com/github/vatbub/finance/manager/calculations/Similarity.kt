@@ -17,8 +17,10 @@
  * limitations under the License.
  * #L%
  */
-package com.github.vatbub.finance.manager
+package com.github.vatbub.finance.manager.calculations
 
+import com.github.vatbub.finance.manager.model.CurrencyAmount
+import com.github.vatbub.finance.manager.model.TransactionCategory
 import kotlin.math.abs
 import kotlin.math.max
 

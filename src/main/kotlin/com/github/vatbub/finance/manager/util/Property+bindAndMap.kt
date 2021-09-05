@@ -1,8 +1,8 @@
 /*-
  * #%L
- * putzplan
+ * magic-obs
  * %%
- * Copyright (C) 2019 - 2021 Frederik Kammel
+ * Copyright (C) 2016 - 2021 Frederik Kammel
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,14 @@
  * limitations under the License.
  * #L%
  */
-package com.github.vatbub.finance.manager
+package com.github.vatbub.finance.manager.util
 
-import com.github.vatbub.finance.manager.logging.LoggingHandlers
-import com.github.vatbub.finance.manager.logging.exceptionHandler
+import javafx.beans.property.Property
+import javafx.beans.value.ObservableValue
 
-
-fun main(vararg args: String) {
-    LoggingHandlers.initializeIfUninitialized()
-    Thread.setDefaultUncaughtExceptionHandler(exceptionHandler)
-    EntryClass.actualMain(*args)
+fun <In, Out> Property<Out>.bindAndMap(observable: ObservableValue<In>, block: (In) -> Out) {
+    this.value = block(observable.value)
+    observable.addListener { _, _, newValue ->
+        this.value = block(newValue)
+    }
 }

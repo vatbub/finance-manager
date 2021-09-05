@@ -19,8 +19,6 @@
  */
 package com.github.vatbub.finance.manager.database
 
-import com.github.vatbub.finance.manager.BankTransaction
-import com.github.vatbub.finance.manager.CurrencyAmount
 import com.github.vatbub.finance.manager.database.BankTransactions.amount
 import com.github.vatbub.finance.manager.database.BankTransactions.bic
 import com.github.vatbub.finance.manager.database.BankTransactions.bookingDate
@@ -32,6 +30,8 @@ import com.github.vatbub.finance.manager.database.BankTransactions.id
 import com.github.vatbub.finance.manager.database.BankTransactions.senderOrReceiver
 import com.github.vatbub.finance.manager.database.BankTransactions.usageText
 import com.github.vatbub.finance.manager.database.BankTransactions.valutaDate
+import com.github.vatbub.finance.manager.model.BankTransaction
+import com.github.vatbub.finance.manager.model.CurrencyAmount
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.InsertStatement
@@ -48,21 +48,24 @@ fun ResultRow.toMemoryTransaction(): BankTransaction = BankTransaction(
     this[usageText],
     this[category],
     DatabaseManager.getTagsFor(this[id].value),
-    CurrencyAmount(this[amount], this[currency])
+    CurrencyAmount(this[amount], this[currency]),
+    this[id].value
 )
 
-fun BankTransaction.toDatabaseBankTransaction(statement: InsertStatement<EntityID<Int>>) = statement.also {
-    it[BankTransactions.bookingDate] = this.bookingDate?.toDatabaseDate()
-    it[BankTransactions.valutaDate] = this.valutaDate?.toDatabaseDate()
-    it[BankTransactions.senderOrReceiver] = this.senderOrReceiver
-    it[BankTransactions.iban] = this.iban
-    it[BankTransactions.bic] = this.bic
-    it[BankTransactions.bookingText] = this.bookingText
-    it[BankTransactions.usageText] = this.usageText
-    it[BankTransactions.category] = this.category
-    it[BankTransactions.amount] = this.amount.amount
-    it[currency] = this.amount.currency
-}
+fun BankTransaction.toDatabaseBankTransaction(accountId: Int, statement: InsertStatement<EntityID<Int>>) =
+    statement.also {
+        it[BankTransactions.accountId] = accountId
+        it[BankTransactions.bookingDate] = this.bookingDate?.toDatabaseDate()
+        it[BankTransactions.valutaDate] = this.valutaDate?.toDatabaseDate()
+        it[BankTransactions.senderOrReceiver] = this.senderOrReceiver
+        it[BankTransactions.iban] = this.iban
+        it[BankTransactions.bic] = this.bic
+        it[BankTransactions.bookingText] = this.bookingText
+        it[BankTransactions.usageText] = this.usageText
+        it[BankTransactions.category] = this.category
+        it[BankTransactions.amount] = this.amount.amount
+        it[currency] = this.amount.currency
+    }
 
 private val dateFormatter = DateTimeFormatter.ofPattern("ddMMyyyy")
 private fun LocalDate.toDatabaseDate() = this.format(dateFormatter)

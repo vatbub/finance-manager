@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.ToolBar?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.vatbub.finance.manager.view.AccountEditView">
+   <children>
+      <ToolBar prefHeight="40.0" prefWidth="200.0">
+        <items>
+          <Button mnemonicParsing="false" onAction="#buttonAddAccountOnAction" text="Add new account" />
+        </items>
+      </ToolBar>
+      <TableView fx:id="tableViewAccounts" editable="true" prefHeight="200.0" prefWidth="200.0" VBox.vgrow="ALWAYS">
+        <columns>
+          <TableColumn fx:id="tableColumnAccountName" maxWidth="1.7976931348623157E308" minWidth="100.0" prefWidth="-1.0" text="Account name" />
+          <TableColumn fx:id="tableColumnAccountBalance" editable="false" maxWidth="1.7976931348623157E308" minWidth="50.0" prefWidth="-1.0" text="Current account balance" />
+            <TableColumn fx:id="tableColumnControls" editable="false" maxWidth="1.7976931348623157E308" minWidth="20.0" prefWidth="-1.0" text="Controls" />
+        </columns>
+      </TableView>
+   </children>
+</VBox>

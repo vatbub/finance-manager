@@ -19,12 +19,13 @@
  */
 package com.github.vatbub.finance.manager.database
 
-import com.github.vatbub.finance.manager.Currency
-import com.github.vatbub.finance.manager.TransactionCategory
+import com.github.vatbub.finance.manager.model.Currency
+import com.github.vatbub.finance.manager.model.TransactionCategory
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Table
 
 object BankTransactions : IntIdTable() {
+    val accountId = integer("accountId").references(Accounts.id)
     val bookingDate = char("bookingDate", 8).nullable()
     val valutaDate = char("valutaDate", 8).nullable()
     val senderOrReceiver = varchar("senderOrReceiver", 70).nullable()
@@ -48,4 +49,14 @@ object BankTransactionsToTagsRelation : Table() {
     override val primaryKey = PrimaryKey(transactionId, tagId)
 }
 
-val tables = listOf(BankTransactions, Tags, BankTransactionsToTagsRelation)
+object Accounts: IntIdTable() {
+    val name = varchar("name", 100)
+}
+
+object Preferences:Table() {
+    val key = varchar("key", 100)
+    val value = varchar("value", 100)
+    override val primaryKey = PrimaryKey(key)
+}
+
+val tables = listOf(BankTransactions, Tags, BankTransactionsToTagsRelation, Accounts, Preferences)

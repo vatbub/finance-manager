@@ -17,7 +17,7 @@
  * limitations under the License.
  * #L%
  */
-package com.github.vatbub.finance.manager
+package com.github.vatbub.finance.manager.calculations
 
 import kotlin.math.min
 

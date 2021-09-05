@@ -27,7 +27,11 @@ module finance.manager {
     requires exposed.core;
     requires java.sql;
     requires kotlin.reflect;
+    requires kotlinPreferences;
     requires org.slf4j;
 
+    opens com.github.vatbub.finance.manager.view to javafx.graphics, javafx.fxml, javafx.base;
     opens com.github.vatbub.finance.manager to javafx.graphics, javafx.fxml, javafx.base;
+    opens com.github.vatbub.finance.manager.model to javafx.graphics, javafx.fxml, javafx.base;
+    exports com.github.vatbub.finance.manager.view to kotlin.reflect;
 }

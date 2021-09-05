@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox fx:id="rootPane" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.vatbub.finance.manager.view.MainView">
+   <children>
+      <MenuBar>
+        <menus>
+          <Menu mnemonicParsing="false" text="File">
+            <items>
+                  <MenuItem mnemonicParsing="false" onAction="#newDatabaseAction" text="New database..." />
+                  <MenuItem mnemonicParsing="false" onAction="#openDatabaseAction" text="Open database..." />
+              <MenuItem mnemonicParsing="false" onAction="#closeProgramAction" text="Close" />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Manage data">
+            <items>
+                  <Menu fx:id="importMenu" mnemonicParsing="false" text="Import...">
+                    <items>
+                      <MenuItem mnemonicParsing="false" onAction="#importConsorsbankCsvAction" text="Consorsbank CSV..." />
+                    </items>
+                  </Menu>
+                  <MenuItem fx:id="editAccountsMenuItem" mnemonicParsing="false" onAction="#editAccountsAction" text="Edit accounts..." />
+              <MenuItem fx:id="editDataMenuItem" mnemonicParsing="false" onAction="#editDataAction" text="Edit data..." />
+            </items>
+          </Menu>
+          <Menu mnemonicParsing="false" text="Help">
+            <items>
+              <MenuItem mnemonicParsing="false" onAction="#aboutAction" text="About" />
+            </items>
+          </Menu>
+        </menus>
+      </MenuBar>
+      <VBox spacing="8.0">
+         <children>
+            <HBox alignment="CENTER_LEFT" spacing="5.0">
+               <children>
+                  <Label text="In the last" />
+                  <TextField fx:id="textFieldLastTimeWindowAmount" />
+                  <ComboBox fx:id="comboBoxLastTimeWindowUnit" prefWidth="150.0" />
+               </children>
+            </HBox>
+            <GridPane>
+              <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+              </columnConstraints>
+              <rowConstraints>
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+              </rowConstraints>
+               <children>
+                  <Label text="...you earned" />
+                  <Label text="...you spent" GridPane.rowIndex="1" />
+                  <Label fx:id="labelLastEarnings" text="No database opened." GridPane.columnIndex="1" />
+                  <Label fx:id="labelLastSpendings" text="No database opened." GridPane.columnIndex="1" GridPane.rowIndex="1" />
+               </children>
+            </GridPane>
+            <Label text="Current account balances:" />
+            <TableView fx:id="tableViewCurrentAccountBalances" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" minHeight="-Infinity" minWidth="-Infinity" prefHeight="152.0">
+              <columns>
+                <TableColumn fx:id="tableColumnAccountNames" editable="false" maxWidth="1.7976931348623157E308" minWidth="150.0" prefWidth="-1.0" text="Name" />
+                <TableColumn fx:id="tableColumnAccountBalances" editable="false" maxWidth="1.7976931348623157E308" minWidth="130.0" prefWidth="-1.0" text="Balance" />
+              </columns>
+            </TableView>
+            <PieChart fx:id="pieChartSpendingsPerCategory" title="Spendings per category" />
+         </children>
+         <padding>
+            <Insets bottom="8.0" left="8.0" right="8.0" top="8.0" />
+         </padding>
+      </VBox>
+   </children>
+</VBox>

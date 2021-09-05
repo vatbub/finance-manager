@@ -17,15 +17,12 @@
  * limitations under the License.
  * #L%
  */
-package com.github.vatbub.finance.manager
+package com.github.vatbub.finance.manager.calculations
 
-fun List<WeightedValue>.weightedAverage(): Double {
-    val weightNormalizationFactor = 1.0 / this.sumOf { it.weight }
-    return fold(0.0) { acc, nextValue ->
-        acc + nextValue.weight * weightNormalizationFactor * nextValue.value
+fun List<Double>.normalize(): List<Double> {
+    val minValue = this.minOrNull() ?: return this
+    val maxValue = this.maxOrNull() ?: return this
+    return this.map {
+        (it - minValue) / (maxValue - minValue)
     }
 }
-
-data class WeightedValue(val weight: Double, val value: Double)
-
-infix fun Double.weightOf(value: Double) = WeightedValue(this, value)

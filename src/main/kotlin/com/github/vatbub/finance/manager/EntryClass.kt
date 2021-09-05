@@ -19,6 +19,7 @@
  */
 package com.github.vatbub.finance.manager
 
+import com.github.vatbub.finance.manager.view.MainView
 import javafx.application.Application
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
@@ -54,7 +55,7 @@ class EntryClass private constructor(callLaunch: Boolean, vararg args: String?) 
         instance = this
         currentStage = primaryStage
 
-        val fxmlLoader = FXMLLoader(javaClass.getResource("MainView.fxml"), null)
+        val fxmlLoader = FXMLLoader(javaClass.getResource("view/MainView.fxml"), null)
         val root = fxmlLoader.load<Parent>()
         controllerInstance = fxmlLoader.getController()
 

@@ -19,4 +19,4 @@
  */
 package com.github.vatbub.finance.manager
 
-val dbFileExtension = "finance_db"
+const val dbFileExtension = "finance_db"

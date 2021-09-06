@@ -3,14 +3,12 @@ package com.github.vatbub.finance.manager.view
 import com.github.vatbub.finance.manager.database.MemoryDataHolder
 import com.github.vatbub.finance.manager.model.Account
 import com.github.vatbub.finance.manager.util.StringStringConverter
-import javafx.collections.FXCollections
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.control.TableColumn
 import javafx.scene.control.TableView
-import javafx.scene.control.cell.PropertyValueFactory
 import javafx.stage.Stage
 import javafx.util.Callback
 
@@ -58,8 +56,8 @@ class AccountEditView {
             memoryDataHolderChanged(newHolder)
         }
 
-        tableColumnAccountName.cellValueFactory = PropertyValueFactory("nameAsString")
-        tableColumnAccountBalance.cellValueFactory = PropertyValueFactory("balance")
+        tableColumnAccountName.cellValueFactory = Account::name.observableCellValueFactory()
+        tableColumnAccountBalance.cellValueFactory = Account::balance.cellValueFactory()
 
         tableColumnAccountName.cellFactory = Callback {
             object : ObjectEditingCell<Account, String>(StringStringConverter) {
@@ -83,6 +81,6 @@ class AccountEditView {
     }
 
     private fun memoryDataHolderChanged(memoryDataHolder: MemoryDataHolder = MemoryDataHolder.currentInstance.value) {
-        tableViewAccounts.items = FXCollections.observableArrayList(memoryDataHolder.accountList)
+        tableViewAccounts.items = memoryDataHolder.accountList
     }
 }

@@ -127,7 +127,7 @@ class ImportView {
         val currentIndex = comboBoxDestinationAccount.selectionModel.selectedIndex.let {
             if (it < 0) 0 else it
         }
-        comboBoxDestinationAccount.items = FXCollections.observableArrayList(memoryDataHolder.accountList)
+        comboBoxDestinationAccount.items = memoryDataHolder.accountList
         comboBoxDestinationAccount.selectionModel.select(currentIndex)
     }
 }

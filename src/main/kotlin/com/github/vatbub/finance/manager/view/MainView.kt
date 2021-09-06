@@ -26,6 +26,7 @@ import com.github.vatbub.finance.manager.database.PreferenceKeys.MainView.LastTi
 import com.github.vatbub.finance.manager.database.PreferenceKeys.MainView.LastTimeWindowUnit
 import com.github.vatbub.finance.manager.database.preferences
 import com.github.vatbub.finance.manager.dbFileExtension
+import com.github.vatbub.finance.manager.model.Account
 import com.github.vatbub.finance.manager.model.CurrencyAmount
 import com.github.vatbub.finance.manager.model.TransactionCategory
 import com.github.vatbub.finance.manager.util.bindAndMap
@@ -35,7 +36,6 @@ import javafx.collections.FXCollections
 import javafx.fxml.FXML
 import javafx.scene.chart.PieChart
 import javafx.scene.control.*
-import javafx.scene.control.cell.PropertyValueFactory
 import javafx.scene.layout.VBox
 import javafx.stage.FileChooser
 import javafx.util.converter.LongStringConverter
@@ -175,8 +175,8 @@ class MainView {
 
         updateLastAmountLabels()
 
-        tableColumnAccountNames.cellValueFactory = PropertyValueFactory("nameAsString")
-        tableColumnAccountBalances.cellValueFactory = PropertyValueFactory("balance")
+        tableColumnAccountNames.cellValueFactory = Account::name.observableCellValueFactory()
+        tableColumnAccountBalances.cellValueFactory = Account::balance.cellValueFactory()
     }
 
     private fun updateLastAmountLabels(
@@ -229,8 +229,9 @@ class MainView {
     }
 
     private fun memoryDataHolderChanged(memoryDataHolder: MemoryDataHolder = MemoryDataHolder.currentInstance.value) {
+        // TODO bind to data changes
         updateLastAmountLabels(memoryDataHolder)
-        tableViewCurrentAccountBalances.items = FXCollections.observableArrayList(memoryDataHolder.accountList)
+        tableViewCurrentAccountBalances.items = memoryDataHolder.accountList
         updatePieChart(memoryDataHolder)
     }
 }

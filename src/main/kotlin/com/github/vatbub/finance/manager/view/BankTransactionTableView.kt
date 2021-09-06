@@ -37,15 +37,15 @@ class BankTransactionTableView(items: ObservableList<BankTransaction>? = null) :
     }
 
     private fun initCellValueFactories() {
-        TableColumns.BookingDate.cellValueFactory = PropertyValueFactory("bookingDate")
-        TableColumns.ValutaDate.cellValueFactory = PropertyValueFactory("valutaDate")
-        TableColumns.SenderOrReceiver.cellValueFactory = PropertyValueFactory("senderOrReceiver")
-        TableColumns.Iban.cellValueFactory = PropertyValueFactory("iban")
-        TableColumns.Bic.cellValueFactory = PropertyValueFactory("bic")
-        TableColumns.BookingText.cellValueFactory = PropertyValueFactory("bookingText")
-        TableColumns.UsageText.cellValueFactory = PropertyValueFactory("usageText")
-        TableColumns.Category.cellValueFactory = PropertyValueFactory("category")
-        TableColumns.Tags.cellValueFactory = PropertyValueFactory("tags")
-        TableColumns.Amount.cellValueFactory = PropertyValueFactory("amount")
+        TableColumns.BookingDate.cellValueFactory = BankTransaction::bookingDate.observableCellValueFactory()
+        TableColumns.ValutaDate.cellValueFactory = BankTransaction::valutaDate.observableCellValueFactory()
+        TableColumns.SenderOrReceiver.cellValueFactory = BankTransaction::senderOrReceiver.observableCellValueFactory()
+        TableColumns.Iban.cellValueFactory = BankTransaction::iban.observableCellValueFactory()
+        TableColumns.Bic.cellValueFactory = BankTransaction::bic.observableCellValueFactory()
+        TableColumns.BookingText.cellValueFactory = BankTransaction::bookingText.observableCellValueFactory()
+        TableColumns.UsageText.cellValueFactory = BankTransaction::usageText.observableCellValueFactory()
+        TableColumns.Category.cellValueFactory = BankTransaction::category.observableCellValueFactory()
+        TableColumns.Tags.cellValueFactory = PropertyValueFactory("tags") // TODO add edit view
+        TableColumns.Amount.cellValueFactory = BankTransaction::amount.observableCellValueFactory()
     }
 }

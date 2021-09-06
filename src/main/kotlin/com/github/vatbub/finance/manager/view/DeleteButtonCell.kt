@@ -19,7 +19,7 @@
  */
 package com.github.vatbub.finance.manager.view
 
-import com.github.vatbub.finance.manager.database.DatabaseManager
+import com.github.vatbub.finance.manager.database.MemoryDataHolder
 import com.github.vatbub.finance.manager.model.Account
 import javafx.application.Platform
 import javafx.event.ActionEvent
@@ -62,6 +62,6 @@ class DeleteButtonCell : TableCell<Account, Account>() {
 
     private fun deleteButtonOnAction(@Suppress("UNUSED_PARAMETER") event: ActionEvent) {
         val account = tableRow.item ?: return
-        DatabaseManager.deleteAccount(account)
+        MemoryDataHolder.currentInstance.value.accountList.remove(account)
     }
 }

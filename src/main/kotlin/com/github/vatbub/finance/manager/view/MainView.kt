@@ -21,8 +21,7 @@ package com.github.vatbub.finance.manager.view
 
 import com.github.vatbub.finance.manager.ConsorsbankCsvParser
 import com.github.vatbub.finance.manager.EntryClass
-import com.github.vatbub.finance.manager.database.DatabaseManager
-import com.github.vatbub.finance.manager.database.DatabaseUpdateListener
+import com.github.vatbub.finance.manager.database.MemoryDataHolder
 import com.github.vatbub.finance.manager.database.PreferenceKeys.MainView.LastTimeWindowAmount
 import com.github.vatbub.finance.manager.database.PreferenceKeys.MainView.LastTimeWindowUnit
 import com.github.vatbub.finance.manager.database.preferences
@@ -48,7 +47,7 @@ import kotlin.math.abs
 import kotlin.system.exitProcess
 
 
-class MainView : DatabaseUpdateListener {
+class MainView {
     @FXML
     private lateinit var resources: ResourceBundle
 
@@ -128,20 +127,24 @@ class MainView : DatabaseUpdateListener {
 
     @FXML
     fun newDatabaseAction() {
-        DatabaseManager.currentDatabaseFile.value = FileChooser().apply {
+        val databaseFile = FileChooser().apply {
             title = "Select database location..."
             extensionFilters.clear()
             extensionFilters.add(FileChooser.ExtensionFilter("SQLite database", "*.$dbFileExtension"))
         }.showSaveDialog(stage) ?: return
+
+        MemoryDataHolder.currentInstance.value = MemoryDataHolder(databaseFile)
     }
 
     @FXML
     fun openDatabaseAction() {
-        DatabaseManager.currentDatabaseFile.value = FileChooser().apply {
+        val databaseFile = FileChooser().apply {
             title = "Select database location..."
             extensionFilters.clear()
             extensionFilters.add(FileChooser.ExtensionFilter("SQLite database", "*.$dbFileExtension"))
         }.showOpenDialog(stage) ?: return
+
+        MemoryDataHolder.currentInstance.value = MemoryDataHolder(databaseFile)
     }
 
     private val stage
@@ -149,11 +152,11 @@ class MainView : DatabaseUpdateListener {
 
     @FXML
     fun initialize() {
-        DatabaseManager.updateListeners.add(this)
+        MemoryDataHolder.currentInstance.addListener { _, _, newHolder -> memoryDataHolderChanged(newHolder) }
 
-        importMenu.disableProperty().bindAndMap(DatabaseManager.currentDatabaseFile) { it == null }
-        editAccountsMenuItem.disableProperty().bindAndMap(DatabaseManager.currentDatabaseFile) { it == null }
-        editDataMenuItem.disableProperty().bindAndMap(DatabaseManager.currentDatabaseFile) { it == null }
+        importMenu.disableProperty().bindAndMap(MemoryDataHolder.currentInstance) { it == null }
+        editAccountsMenuItem.disableProperty().bindAndMap(MemoryDataHolder.currentInstance) { it == null }
+        editDataMenuItem.disableProperty().bindAndMap(MemoryDataHolder.currentInstance) { it == null }
 
         comboBoxLastTimeWindowUnit.items = FXCollections.observableArrayList(*values())
         comboBoxLastTimeWindowUnit.selectionModel.select(preferences[LastTimeWindowUnit])
@@ -172,19 +175,16 @@ class MainView : DatabaseUpdateListener {
 
         updateLastAmountLabels()
 
-        tableColumnAccountNames.cellValueFactory = PropertyValueFactory("name")
+        tableColumnAccountNames.cellValueFactory = PropertyValueFactory("nameAsString")
         tableColumnAccountBalances.cellValueFactory = PropertyValueFactory("balance")
-
-        DatabaseManager.currentDatabaseFile.addListener { _, _, _ ->
-            databaseUpdateHappened()
-        }
     }
 
     private fun updateLastAmountLabels(
+        memoryDataHolder: MemoryDataHolder? = MemoryDataHolder.currentInstance.value,
         lastTimeWindowAmount: Long = textFieldLastTimeWindowAmount.text.toLong(),
         lastTimeWindowUnit: AccountDisplayTimeUnit = comboBoxLastTimeWindowUnit.value
     ) {
-        if (!DatabaseManager.isConnected) return
+        if (memoryDataHolder == null) return
 
         val now = LocalDate.now()
         val relevantTimeWindowStart = when (lastTimeWindowUnit) {
@@ -193,11 +193,11 @@ class MainView : DatabaseUpdateListener {
             Years -> now.minusYears(lastTimeWindowAmount - 1).withMonth(1).withDayOfMonth(1)
         }
 
-        val relevantTransactions = DatabaseManager.getAllAccounts()
+        val relevantTransactions = memoryDataHolder.accountList
             .map { it.transactions }
             .flatten()
-            .filter { it.valutaDate?.isWithinRange(relevantTimeWindowStart, now) ?: false }
-            .map { it.amount.amount }
+            .filter { it.valutaDate.value?.isWithinRange(relevantTimeWindowStart, now) ?: false }
+            .map { it.amount.value.amount }
 
         labelLastEarnings.text = relevantTransactions
             .filter { it >= 0 }
@@ -212,12 +212,12 @@ class MainView : DatabaseUpdateListener {
 
     private data class CategoryAndAmount(val category: TransactionCategory, val amount: CurrencyAmount)
 
-    private fun updatePieChart() {
-        pieChartSpendingsPerCategory.data = DatabaseManager.getAllAccounts()
+    private fun updatePieChart(memoryDataHolder: MemoryDataHolder = MemoryDataHolder.currentInstance.value) {
+        pieChartSpendingsPerCategory.data = memoryDataHolder.accountList
             .map { it.transactions }
             .flatten()
-            .filter { it.amount.amount <= 0 }
-            .mapNotNull { it.category?.let { category -> CategoryAndAmount(category, it.amount) } }
+            .filter { it.amount.value.amount <= 0 }
+            .mapNotNull { it.category.value?.let { category -> CategoryAndAmount(category, it.amount.value) } }
             .groupBy { it.category }
             .map { entry ->
                 val totalAmount = entry.value
@@ -228,9 +228,9 @@ class MainView : DatabaseUpdateListener {
             .let { FXCollections.observableArrayList(it) }
     }
 
-    override fun databaseUpdateHappened() {
-        updateLastAmountLabels()
-        tableViewCurrentAccountBalances.items = FXCollections.observableArrayList(DatabaseManager.getAllAccounts())
-        updatePieChart()
+    private fun memoryDataHolderChanged(memoryDataHolder: MemoryDataHolder = MemoryDataHolder.currentInstance.value) {
+        updateLastAmountLabels(memoryDataHolder)
+        tableViewCurrentAccountBalances.items = FXCollections.observableArrayList(memoryDataHolder.accountList)
+        updatePieChart(memoryDataHolder)
     }
 }

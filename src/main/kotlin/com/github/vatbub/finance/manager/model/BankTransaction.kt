@@ -22,31 +22,74 @@ package com.github.vatbub.finance.manager.model
 import com.github.vatbub.finance.manager.calculations.similarityTo
 import com.github.vatbub.finance.manager.calculations.weightOf
 import com.github.vatbub.finance.manager.calculations.weightedAverage
+import javafx.beans.property.ObjectProperty
+import javafx.beans.property.SimpleObjectProperty
+import javafx.beans.property.SimpleStringProperty
+import javafx.beans.property.StringProperty
+import javafx.beans.value.ObservableValue
+import javafx.collections.FXCollections
+import javafx.collections.ObservableList
 import java.time.LocalDate
 
-data class BankTransaction(
-    val bookingDate: LocalDate?,
-    val valutaDate: LocalDate?,
-    val senderOrReceiver: String?,
-    val iban: IBAN?,
-    val bic: BIC?,
-    val bookingText: String?,
-    val usageText: String?,
-    val category: TransactionCategory?,
-    val tags: List<String>,
-    val amount: CurrencyAmount,
-    val id: Int? = null
-) {
+class BankTransaction(
+    val bookingDate: ObjectProperty<LocalDate>,
+    val valutaDate: ObjectProperty<LocalDate>,
+    val senderOrReceiver: StringProperty,
+    val iban: ObjectProperty<IBAN>,
+    val bic: ObjectProperty<BIC>,
+    val bookingText: StringProperty,
+    val usageText: StringProperty,
+    val category: ObjectProperty<TransactionCategory>,
+    val tags: ObservableList<String>,
+    val amount: ObjectProperty<CurrencyAmount>
+) : ObservableWithObservableProperties, ObservableWithObservableListProperties {
+    constructor(
+        bookingDate: LocalDate?,
+        valutaDate: LocalDate?,
+        senderOrReceiver: String?,
+        iban: IBAN?,
+        bic: BIC?,
+        bookingText: String?,
+        usageText: String?,
+        category: TransactionCategory?,
+        tags: List<String>,
+        amount: CurrencyAmount
+    ) : this(
+        SimpleObjectProperty<LocalDate>(bookingDate),
+        SimpleObjectProperty<LocalDate>(valutaDate),
+        SimpleStringProperty(senderOrReceiver),
+        SimpleObjectProperty<IBAN>(iban),
+        SimpleObjectProperty<BIC>(bic),
+        SimpleStringProperty(bookingText),
+        SimpleStringProperty(usageText),
+        SimpleObjectProperty<TransactionCategory>(category),
+        FXCollections.observableArrayList(tags),
+        SimpleObjectProperty<CurrencyAmount>(amount)
+    )
+
     infix fun similarityTo(other: BankTransaction): Double = listOf(
-        0.2 weightOf senderOrReceiver.similarityTo(other.senderOrReceiver),
-        0.2 weightOf iban.similarityTo(other.iban),
-        0.2 weightOf bic.similarityTo(other.bic),
-        0.2 weightOf bookingText.similarityTo(other.bookingText),
-        0.3 weightOf usageText.similarityTo(other.usageText),
-        0.1 weightOf category.similarityTo(other.category),
+        0.2 weightOf senderOrReceiver.value.similarityTo(other.senderOrReceiver.value),
+        0.2 weightOf iban.value.similarityTo(other.iban.value),
+        0.2 weightOf bic.value.similarityTo(other.bic.value),
+        0.2 weightOf bookingText.value.similarityTo(other.bookingText.value),
+        0.3 weightOf usageText.value.similarityTo(other.usageText.value),
+        0.1 weightOf category.value.similarityTo(other.category.value),
         0.1 weightOf tags.similarityTo(other.tags),
-        0.2 weightOf amount.similarityTo(other.amount)
+        0.2 weightOf amount.value.similarityTo(other.amount.value)
     ).weightedAverage()
+
+    override val observableProperties: List<ObservableValue<*>> = listOf(
+        bookingDate,
+        valutaDate,
+        senderOrReceiver,
+        iban,
+        bic,
+        bookingText,
+        usageText,
+        category,
+        amount
+    )
+    override val observableLists: List<ObservableList<*>> = listOf(tags)
 
     @Suppress("DuplicatedCode")
     override fun equals(other: Any?): Boolean {
@@ -68,16 +111,16 @@ data class BankTransaction(
     }
 
     override fun hashCode(): Int {
-        var result = bookingDate?.hashCode() ?: 0
-        result = 31 * result + (valutaDate?.hashCode() ?: 0)
-        result = 31 * result + (senderOrReceiver?.hashCode() ?: 0)
-        result = 31 * result + (iban?.hashCode() ?: 0)
-        result = 31 * result + (bic?.hashCode() ?: 0)
-        result = 31 * result + (bookingText?.hashCode() ?: 0)
-        result = 31 * result + (usageText?.hashCode() ?: 0)
-        result = 31 * result + (category?.hashCode() ?: 0)
+        var result = bookingDate.value?.hashCode() ?: 0
+        result = 31 * result + (valutaDate.value?.hashCode() ?: 0)
+        result = 31 * result + (senderOrReceiver.value?.hashCode() ?: 0)
+        result = 31 * result + (iban.value?.hashCode() ?: 0)
+        result = 31 * result + (bic.value?.hashCode() ?: 0)
+        result = 31 * result + (bookingText.value?.hashCode() ?: 0)
+        result = 31 * result + (usageText.value?.hashCode() ?: 0)
+        result = 31 * result + (category.value?.hashCode() ?: 0)
         result = 31 * result + tags.hashCode()
-        result = 31 * result + amount.hashCode()
+        result = 31 * result + amount.value.hashCode()
         return result
     }
 }

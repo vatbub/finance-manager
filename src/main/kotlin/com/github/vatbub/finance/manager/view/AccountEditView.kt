@@ -1,7 +1,6 @@
 package com.github.vatbub.finance.manager.view
 
-import com.github.vatbub.finance.manager.database.DatabaseManager
-import com.github.vatbub.finance.manager.database.DatabaseUpdateListener
+import com.github.vatbub.finance.manager.database.MemoryDataHolder
 import com.github.vatbub.finance.manager.model.Account
 import com.github.vatbub.finance.manager.util.StringStringConverter
 import javafx.collections.FXCollections
@@ -16,9 +15,9 @@ import javafx.stage.Stage
 import javafx.util.Callback
 
 
-class AccountEditView:DatabaseUpdateListener {
-    companion object{
-        fun show():AccountEditView{
+class AccountEditView {
+    companion object {
+        fun show(): AccountEditView {
             val stage = Stage()
 
             val fxmlLoader = FXMLLoader(AccountEditView::class.java.getResource("AccountEditView.fxml"), null)
@@ -55,31 +54,35 @@ class AccountEditView:DatabaseUpdateListener {
 
     @FXML
     fun initialize() {
-        DatabaseManager.updateListeners.add(this)
+        MemoryDataHolder.currentInstance.addListener { _, _, newHolder ->
+            memoryDataHolderChanged(newHolder)
+        }
 
-        tableColumnAccountName.cellValueFactory = PropertyValueFactory("name")
+        tableColumnAccountName.cellValueFactory = PropertyValueFactory("nameAsString")
         tableColumnAccountBalance.cellValueFactory = PropertyValueFactory("balance")
 
         tableColumnAccountName.cellFactory = Callback {
             object : ObjectEditingCell<Account, String>(StringStringConverter) {
                 override fun updateItemPropertyValue(item: Account, newValue: String) {
-                    DatabaseManager.updateAccount(item.id!!, newValue)
+                    item.name.value = newValue
                 }
             }
         }
 
         tableColumnControls.cellFactory = Callback { DeleteButtonCell() }
 
-        databaseUpdateHappened()
+        memoryDataHolderChanged()
     }
 
     @FXML
     fun buttonAddAccountOnAction() {
-        val accountNumber = DatabaseManager.getAllAccounts().size + 1
-        DatabaseManager.createAccount(Account("Account $accountNumber", listOf()))
+        MemoryDataHolder.currentInstance.value.accountList.let {
+            val accountNumber = it.size + 1
+            it.add(Account("Account $accountNumber", listOf()))
+        }
     }
 
-    override fun databaseUpdateHappened() {
-        tableViewAccounts.items = FXCollections.observableArrayList(DatabaseManager.getAllAccounts())
+    private fun memoryDataHolderChanged(memoryDataHolder: MemoryDataHolder = MemoryDataHolder.currentInstance.value) {
+        tableViewAccounts.items = FXCollections.observableArrayList(memoryDataHolder.accountList)
     }
 }

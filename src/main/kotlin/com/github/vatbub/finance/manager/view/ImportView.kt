@@ -19,8 +19,7 @@
  */
 package com.github.vatbub.finance.manager.view
 
-import com.github.vatbub.finance.manager.database.DatabaseManager
-import com.github.vatbub.finance.manager.database.DatabaseUpdateListener
+import com.github.vatbub.finance.manager.database.MemoryDataHolder
 import com.github.vatbub.finance.manager.model.Account
 import com.github.vatbub.finance.manager.model.BankTransaction
 import javafx.collections.FXCollections
@@ -37,7 +36,7 @@ import java.net.URL
 import java.util.*
 
 
-class ImportView : DatabaseUpdateListener {
+class ImportView {
     companion object {
         fun show(bankTransactions: List<BankTransaction>): ImportView {
             val stage = Stage()
@@ -92,17 +91,19 @@ class ImportView : DatabaseUpdateListener {
 
     @FXML
     fun initialize() {
-        DatabaseManager.updateListeners.add(this)
+        MemoryDataHolder.currentInstance.addListener { _, _, newHolder ->
+            memoryDataHolderChanged(newHolder)
+        }
 
         comboBoxDestinationAccount.converter = object : StringConverter<Account>() {
-            override fun toString(`object`: Account?): String = `object`?.name ?: "<null>"
+            override fun toString(`object`: Account?): String = `object`?.name?.value ?: "<null>"
 
             override fun fromString(string: String?): Account {
                 throw NotImplementedError()
             }
         }
 
-        databaseUpdateHappened()
+        memoryDataHolderChanged()
     }
 
     private fun initTransactionTableView() {
@@ -118,15 +119,15 @@ class ImportView : DatabaseUpdateListener {
     fun buttonImportOnAction() {
         val selectedAccount = comboBoxDestinationAccount.selectionModel.selectedItem
             ?: throw IllegalStateException("Please select an account to import from")
-        DatabaseManager.import(selectedAccount, transactionsToBeImported)
-        stage?.hide()
+        selectedAccount.import(transactionsToBeImported)
+        stage.hide()
     }
 
-    override fun databaseUpdateHappened() {
+    private fun memoryDataHolderChanged(memoryDataHolder: MemoryDataHolder = MemoryDataHolder.currentInstance.value) {
         val currentIndex = comboBoxDestinationAccount.selectionModel.selectedIndex.let {
             if (it < 0) 0 else it
         }
-        comboBoxDestinationAccount.items = FXCollections.observableArrayList(DatabaseManager.getAllAccounts())
+        comboBoxDestinationAccount.items = FXCollections.observableArrayList(memoryDataHolder.accountList)
         comboBoxDestinationAccount.selectionModel.select(currentIndex)
     }
 }

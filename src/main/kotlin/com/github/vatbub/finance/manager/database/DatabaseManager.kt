@@ -21,13 +21,19 @@ package com.github.vatbub.finance.manager.database
 
 import com.github.vatbub.finance.manager.database.BankTransactionsToTagsRelation.tagId
 import com.github.vatbub.finance.manager.database.BankTransactionsToTagsRelation.transactionId
+import com.github.vatbub.finance.manager.database.ListChange.OtherChange
+import com.github.vatbub.finance.manager.database.ListChange.RemovalChange
 import com.github.vatbub.finance.manager.database.Tags.tag
 import com.github.vatbub.finance.manager.model.Account
 import com.github.vatbub.finance.manager.model.BankTransaction
+import com.github.vatbub.finance.manager.util.toContinuousSegments
 import com.github.vatbub.kotlin.preferences.KeyValueProvider
 import com.github.vatbub.kotlin.preferences.MemoryKeyValueProvider
+import javafx.beans.InvalidationListener
 import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
+import javafx.collections.ListChangeListener
+import javafx.collections.ObservableList
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.File
@@ -62,7 +68,7 @@ object DatabaseManager : KeyValueProvider {
         isConnected = true
     }
 
-    fun initializeScheme() {
+    private fun initializeScheme() {
         transaction {
             SchemaUtils.createMissingTablesAndColumns(*tables.toTypedArray())
             commit()
@@ -130,6 +136,185 @@ object DatabaseManager : KeyValueProvider {
         }
     }
 
+    object DatabaseContents : ObservableList<Account> {
+        private object Lock
+
+        private fun <T> lock(block: (Transaction) -> T) = synchronized(Lock) {
+            transaction {
+                block(this)
+            }
+        }
+
+        private var actualCache: List<Account>? = null
+        private val cache: List<Account>
+            get() {
+                actualCache?.let { return it }
+                synchronized(Lock) {
+                    actualCache?.let { return it }
+                    actualCache = transaction {
+                        Internal.getAllAccounts()
+                    }
+                    return actualCache!!
+                }
+            }
+
+        private fun invalidateCache() = synchronized(Lock) {
+            actualCache = null
+        }
+
+        private val changeListeners = mutableListOf<ListChangeListener<in Account>>()
+
+        override fun addListener(listener: ListChangeListener<in Account>) {
+            changeListeners.add(listener)
+        }
+
+        override fun removeListener(listener: ListChangeListener<in Account>) {
+            changeListeners.remove(listener)
+        }
+
+        override fun addListener(listener: InvalidationListener?) {
+        }
+
+        override fun removeListener(listener: InvalidationListener?) {
+        }
+
+        private fun fireChange(block: () -> List<ListChange<Account>>) {
+            if (changeListeners.isEmpty()) return
+            val change = ListChangeListenerImplementation<Account>(this, block())
+            changeListeners.forEach { it.onChanged(change) }
+        }
+
+        override val size: Int
+            get() = cache.size
+
+        override fun containsAll(elements: Collection<Account>): Boolean =
+            cache.containsAll(elements)
+
+        override fun indexOf(element: Account?): Int = cache.indexOf(element)
+
+        override fun contains(element: Account?): Boolean = cache.contains(element)
+
+        override fun get(index: Int): Account = cache[index]
+
+        override fun isEmpty(): Boolean = cache.isEmpty()
+
+        override fun lastIndexOf(element: Account?): Int = cache.lastIndexOf(element)
+
+        override fun add(element: Account): Boolean = lock {
+            val createdAccount = Internal.createAccount(element)
+            invalidateCache()
+            fireChange {
+                val index = cache.indexOf(createdAccount)
+                listOf(OtherChange(index, index))
+            }
+            true
+        }
+
+        override fun add(index: Int, element: Account?) {
+            throw NotSupportedException("The database does not support adding accounts with a specified index. Please use add(element) instead")
+        }
+
+        override fun addAll(vararg elements: Account): Boolean = addAll(elements.toList())
+
+        override fun iterator(): MutableIterator<Account> {
+            TODO("Not yet implemented")
+        }
+
+        override fun addAll(index: Int, elements: Collection<Account>): Boolean {
+            throw NotSupportedException("The database does not support adding accounts with a specified index. Please use addAll(elements) instead")
+        }
+
+        override fun addAll(elements: Collection<Account>): Boolean = lock {
+            val createdAccounts = elements.map { Internal.createAccount(it) }
+            invalidateCache()
+            fireChange {
+                val indices = createdAccounts.map { cache.indexOf(it) }
+                listOf(OtherChange(indices.minOrNull() ?: 0, indices.maxOrNull() ?: 0))
+            }
+            true
+        }
+
+        override fun clear() = lock {
+            Internal.clearAccounts()
+            invalidateCache()
+        }
+
+        override fun remove(from: Int, to: Int) = lock {
+            val deletedAccounts = (from..to).map { cache[it] }
+            deletedAccounts.forEach { Internal.deleteAccount(it) }
+            invalidateCache()
+            fireChange { listOf(RemovalChange(from, to, deletedAccounts)) }
+        }
+
+        override fun remove(element: Account): Boolean = lock {
+            val index = cache.indexOf(element)
+            if (index < 0) return@lock false
+
+            Internal.deleteAccount(element)
+            invalidateCache()
+            fireChange { listOf(RemovalChange(index, index, listOf(element))) }
+            return@lock true
+        }
+
+        override fun removeAll(vararg elements: Account): Boolean = removeAll(elements.toList())
+
+        override fun removeAll(elements: Collection<Account>): Boolean = lock {
+            val indexedElements = elements
+                .associateBy { cache.indexOf(it) }
+                .filter { it.key >= 0 }
+            if (indexedElements.isEmpty()) return@lock false
+
+            elements.forEach { Internal.deleteAccount(it) }
+            invalidateCache()
+            fireChange {
+                indexedElements.toContinuousSegments()
+                    .map { segment ->
+                        RemovalChange(segment.keys.minOrNull()!!, segment.keys.maxOrNull()!!, segment.values.toList())
+                    }
+            }
+
+            return@lock true
+        }
+
+        override fun removeAt(index: Int): Account  = lock {
+            val element = cache[index]
+            Internal.deleteAccount(element)
+            invalidateCache()
+            fireChange { listOf(RemovalChange(index, index, listOf(element))) }
+            return@lock element
+        }
+
+        override fun retainAll(vararg elements: Account): Boolean = retainAll(elements.toList())
+
+        override fun retainAll(elements: Collection<Account>): Boolean = synchronized(Lock) {
+            removeAll(cache.filterNot { elements.contains(it) })
+        }
+
+        override fun set(index: Int, element: Account?): Account {
+            throw NotSupportedException("The database does not support setting accounts with a specified index. Please remove the account and add a new one instead")
+        }
+
+        override fun subList(fromIndex: Int, toIndex: Int): MutableList<Account> {
+            TODO("Not yet implemented")
+        }
+
+        override fun setAll(vararg elements: Account?): Boolean {
+            TODO("Not yet implemented")
+        }
+
+        override fun setAll(col: MutableCollection<out Account>?): Boolean {
+            TODO("Not yet implemented")
+        }
+
+        override fun listIterator(): MutableListIterator<Account> {
+            TODO("Not yet implemented")
+        }
+
+        override fun listIterator(index: Int): MutableListIterator<Account> {
+            TODO("Not yet implemented")
+        }
+    }
+
     private object Internal {
         fun getAllAccounts() =
             Accounts.selectAll().map {
@@ -188,6 +373,12 @@ object DatabaseManager : KeyValueProvider {
             return account.copy(id = accountId)
         }
 
+        fun clearAccounts() {
+            BankTransactionsToTagsRelation.deleteAll()
+            BankTransactions.deleteAll()
+            Accounts.deleteAll()
+        }
+
         fun deleteTransaction(bankTransaction: BankTransaction) {
             BankTransactions.deleteWhere { BankTransactions.id eq bankTransaction.id!! }
             BankTransactionsToTagsRelation.deleteWhere { transactionId eq bankTransaction.id!! }
@@ -200,7 +391,7 @@ object DatabaseManager : KeyValueProvider {
             Accounts.deleteWhere { Accounts.id eq account.id!! }
         }
 
-        fun updateAccount(accountId: Int, newName: String){
+        fun updateAccount(accountId: Int, newName: String) {
             Accounts.update(where = {
                 Accounts.id eq accountId
             }, body = {
@@ -248,3 +439,11 @@ object DatabaseManager : KeyValueProvider {
         }
     }
 }
+
+private fun <V>Map<Int, V>.toContinuousSegments():List<Map<Int, V>> = this
+    .keys
+    .toList()
+    .toContinuousSegments()
+    .map { segment ->
+        segment.associateWith { this[it]!! }
+    }

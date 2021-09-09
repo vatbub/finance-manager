@@ -37,15 +37,15 @@ class BankTransactionTableView(items: ObservableList<BankTransaction>? = null) :
     }
 
     private fun initCellValueFactories() {
-        TableColumns.BookingDate.cellValueFactory = BankTransaction::bookingDate.observableCellValueFactory()
-        TableColumns.ValutaDate.cellValueFactory = BankTransaction::valutaDate.observableCellValueFactory()
-        TableColumns.SenderOrReceiver.cellValueFactory = BankTransaction::senderOrReceiver.observableCellValueFactory()
-        TableColumns.Iban.cellValueFactory = BankTransaction::iban.observableCellValueFactory()
-        TableColumns.Bic.cellValueFactory = BankTransaction::bic.observableCellValueFactory()
-        TableColumns.BookingText.cellValueFactory = BankTransaction::bookingText.observableCellValueFactory()
-        TableColumns.UsageText.cellValueFactory = BankTransaction::usageText.observableCellValueFactory()
-        TableColumns.Category.cellValueFactory = BankTransaction::category.observableCellValueFactory()
+        TableColumns.BookingDate.cellValueFactory = BankTransaction::bookingDate.cellValueFactory()
+        TableColumns.ValutaDate.cellValueFactory = BankTransaction::valutaDate.cellValueFactory()
+        TableColumns.SenderOrReceiver.cellValueFactory = BankTransaction::senderOrReceiver.cellValueFactory()
+        TableColumns.Iban.cellValueFactory = BankTransaction::iban.cellValueFactory()
+        TableColumns.Bic.cellValueFactory = BankTransaction::bic.cellValueFactory()
+        TableColumns.BookingText.cellValueFactory = BankTransaction::bookingText.cellValueFactory()
+        TableColumns.UsageText.cellValueFactory = BankTransaction::usageText.cellValueFactory()
+        TableColumns.Category.cellValueFactory = BankTransaction::category.cellValueFactory()
         TableColumns.Tags.cellValueFactory = PropertyValueFactory("tags") // TODO add edit view
-        TableColumns.Amount.cellValueFactory = BankTransaction::amount.observableCellValueFactory()
+        TableColumns.Amount.cellValueFactory = BankTransaction::amount.cellValueFactory()
     }
 }

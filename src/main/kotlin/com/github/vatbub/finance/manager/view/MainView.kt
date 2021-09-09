@@ -27,12 +27,14 @@ import com.github.vatbub.finance.manager.database.PreferenceKeys.MainView.LastTi
 import com.github.vatbub.finance.manager.database.preferences
 import com.github.vatbub.finance.manager.dbFileExtension
 import com.github.vatbub.finance.manager.model.Account
+import com.github.vatbub.finance.manager.model.BankTransaction
 import com.github.vatbub.finance.manager.model.CurrencyAmount
 import com.github.vatbub.finance.manager.model.TransactionCategory
 import com.github.vatbub.finance.manager.util.bindAndMap
 import com.github.vatbub.finance.manager.util.isWithinRange
 import com.github.vatbub.finance.manager.view.AccountDisplayTimeUnit.*
 import javafx.collections.FXCollections
+import javafx.collections.ListChangeListener
 import javafx.fxml.FXML
 import javafx.scene.chart.PieChart
 import javafx.scene.control.*
@@ -175,16 +177,16 @@ class MainView {
 
         updateLastAmountLabels()
 
-        tableColumnAccountNames.cellValueFactory = Account::name.observableCellValueFactory()
+        tableColumnAccountNames.cellValueFactory = Account::name.cellValueFactory()
         tableColumnAccountBalances.cellValueFactory = Account::balance.cellValueFactory()
     }
 
     private fun updateLastAmountLabels(
-        memoryDataHolder: MemoryDataHolder? = MemoryDataHolder.currentInstance.value,
+        transactions: List<BankTransaction>? = MemoryDataHolder.currentInstance.value?.allAccountTransactions,
         lastTimeWindowAmount: Long = textFieldLastTimeWindowAmount.text.toLong(),
         lastTimeWindowUnit: AccountDisplayTimeUnit = comboBoxLastTimeWindowUnit.value
     ) {
-        if (memoryDataHolder == null) return
+        if (transactions == null) return
 
         val now = LocalDate.now()
         val relevantTimeWindowStart = when (lastTimeWindowUnit) {
@@ -193,9 +195,7 @@ class MainView {
             Years -> now.minusYears(lastTimeWindowAmount - 1).withMonth(1).withDayOfMonth(1)
         }
 
-        val relevantTransactions = memoryDataHolder.accountList
-            .map { it.transactions }
-            .flatten()
+        val relevantTransactions = transactions
             .filter { it.valutaDate.value?.isWithinRange(relevantTimeWindowStart, now) ?: false }
             .map { it.amount.value.amount }
 
@@ -212,10 +212,19 @@ class MainView {
 
     private data class CategoryAndAmount(val category: TransactionCategory, val amount: CurrencyAmount)
 
-    private fun updatePieChart(memoryDataHolder: MemoryDataHolder = MemoryDataHolder.currentInstance.value) {
-        pieChartSpendingsPerCategory.data = memoryDataHolder.accountList
-            .map { it.transactions }
+    private val MemoryDataHolder.allAccountTransactions
+        get() = accountList.allTransactions
+
+    private val List<Account>.allTransactions
+        get() = this.map { it.transactions }
             .flatten()
+
+    private fun updatePieChart(
+        transactions: List<BankTransaction>? = MemoryDataHolder.currentInstance.value?.allAccountTransactions
+    ) {
+        if (transactions == null) return
+
+        pieChartSpendingsPerCategory.data = transactions
             .filter { it.amount.value.amount <= 0 }
             .mapNotNull { it.category.value?.let { category -> CategoryAndAmount(category, it.amount.value) } }
             .groupBy { it.category }
@@ -229,9 +238,24 @@ class MainView {
     }
 
     private fun memoryDataHolderChanged(memoryDataHolder: MemoryDataHolder = MemoryDataHolder.currentInstance.value) {
-        // TODO bind to data changes
-        updateLastAmountLabels(memoryDataHolder)
         tableViewCurrentAccountBalances.items = memoryDataHolder.accountList
-        updatePieChart(memoryDataHolder)
+        updateData(memoryDataHolder.allAccountTransactions)
+
+        memoryDataHolder.accountList.addListener(ListChangeListener {
+            updateData(it.list.allTransactions)
+            it.list.addDataListener()
+        })
+        memoryDataHolder.accountList.addDataListener()
+    }
+
+    private fun List<Account>.addDataListener() = this.forEach { account ->
+        account.transactions.addListener(ListChangeListener {
+            updateData(it.list)
+        })
+    }
+
+    private fun updateData(transactions: List<BankTransaction>) {
+        updateLastAmountLabels(transactions)
+        updatePieChart(transactions)
     }
 }

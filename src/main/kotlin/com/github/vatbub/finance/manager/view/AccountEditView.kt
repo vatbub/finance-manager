@@ -45,7 +45,7 @@ class AccountEditView {
     private lateinit var tableColumnAccountName: TableColumn<Account, String>
 
     @FXML
-    private lateinit var tableColumnAccountBalance: TableColumn<Account, Double>
+    private lateinit var tableColumnAccountBalance: TableColumn<Account, Number>
 
     @FXML
     private lateinit var tableColumnControls: TableColumn<Account, *>
@@ -56,7 +56,7 @@ class AccountEditView {
             memoryDataHolderChanged(newHolder)
         }
 
-        tableColumnAccountName.cellValueFactory = Account::name.observableCellValueFactory()
+        tableColumnAccountName.cellValueFactory = Account::name.cellValueFactory()
         tableColumnAccountBalance.cellValueFactory = Account::balance.cellValueFactory()
 
         tableColumnAccountName.cellFactory = Callback {

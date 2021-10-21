@@ -84,7 +84,7 @@ class MemoryDataHolder(val database: Database) : KeyValueProvider {
 
     private fun privateSave() = BackgroundScheduler.singleThreaded.enqueue(message = "Saving data to disk...") {
         transaction(db = database) {
-            tables.forEach { it.deleteAll() }
+            financialTables.forEach { it.deleteAll() }
 
             val tags = accountList
                 .map { account -> account.transactions.map { it.tags } }

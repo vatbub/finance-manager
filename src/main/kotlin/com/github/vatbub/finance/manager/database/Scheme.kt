@@ -59,4 +59,6 @@ object Preferences:Table() {
     override val primaryKey = PrimaryKey(key)
 }
 
-val tables = listOf(BankTransactions, Tags, BankTransactionsToTagsRelation, Accounts, Preferences)
+val financialTables = listOf(BankTransactions, Tags, BankTransactionsToTagsRelation, Accounts)
+val nonFinancialTables = listOf(Preferences)
+val tables = financialTables + nonFinancialTables

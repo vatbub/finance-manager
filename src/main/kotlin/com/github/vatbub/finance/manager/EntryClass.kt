@@ -71,4 +71,8 @@ class EntryClass private constructor(callLaunch: Boolean, vararg args: String?) 
 
         primaryStage.show()
     }
+
+    override fun stop() {
+        BackgroundScheduler.shutdown()
+    }
 }

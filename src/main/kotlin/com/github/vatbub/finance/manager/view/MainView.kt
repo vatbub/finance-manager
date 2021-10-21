@@ -19,6 +19,7 @@
  */
 package com.github.vatbub.finance.manager.view
 
+import com.github.vatbub.finance.manager.BackgroundScheduler
 import com.github.vatbub.finance.manager.ConsorsbankCsvParser
 import com.github.vatbub.finance.manager.EntryClass
 import com.github.vatbub.finance.manager.database.MemoryDataHolder
@@ -33,11 +34,15 @@ import com.github.vatbub.finance.manager.model.TransactionCategory
 import com.github.vatbub.finance.manager.util.bindAndMap
 import com.github.vatbub.finance.manager.util.isWithinRange
 import com.github.vatbub.finance.manager.view.AccountDisplayTimeUnit.*
+import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
+import javafx.concurrent.Task
+import javafx.concurrent.Worker.State.RUNNING
 import javafx.fxml.FXML
 import javafx.scene.chart.PieChart
 import javafx.scene.control.*
+import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.FileChooser
 import javafx.util.converter.LongStringConverter
@@ -46,7 +51,6 @@ import java.net.URL
 import java.time.LocalDate
 import java.util.*
 import kotlin.math.abs
-import kotlin.system.exitProcess
 
 
 class MainView {
@@ -92,6 +96,15 @@ class MainView {
     @FXML
     private lateinit var editDataMenuItem: MenuItem
 
+    @FXML
+    private lateinit var hBoxBackgroundJobs: HBox
+
+    @FXML
+    private lateinit var labelBackgroundJobName: Label
+
+    @FXML
+    private lateinit var progressBarBackgroundJobs: ProgressBar
+
 
     @FXML
     fun aboutAction() {
@@ -100,7 +113,7 @@ class MainView {
 
     @FXML
     fun closeProgramAction() {
-        exitProcess(0)
+        Platform.exit()
     }
 
     @FXML
@@ -121,10 +134,10 @@ class MainView {
         }
         val sourceFile = fileChooser.showOpenDialog(stage)
 
-        // TODO replace with background scheduler
-        val bankTransactions = ConsorsbankCsvParser(sourceFile)
-
-        ImportView.show(bankTransactions)
+        BackgroundScheduler.multiThreaded.enqueue(message = "Reading import file...") {
+            val bankTransactions = ConsorsbankCsvParser(sourceFile)
+            Platform.runLater { ImportView.show(bankTransactions) }
+        }
     }
 
     @FXML
@@ -135,7 +148,9 @@ class MainView {
             extensionFilters.add(FileChooser.ExtensionFilter("SQLite database", "*.$dbFileExtension"))
         }.showSaveDialog(stage) ?: return
 
-        MemoryDataHolder.currentInstance.value = MemoryDataHolder(databaseFile)
+        BackgroundScheduler.singleThreaded.enqueue(message = "Creating new database...") {
+            MemoryDataHolder.currentInstance.value = MemoryDataHolder(databaseFile)
+        }
     }
 
     @FXML
@@ -146,7 +161,9 @@ class MainView {
             extensionFilters.add(FileChooser.ExtensionFilter("SQLite database", "*.$dbFileExtension"))
         }.showOpenDialog(stage) ?: return
 
-        MemoryDataHolder.currentInstance.value = MemoryDataHolder(databaseFile)
+        BackgroundScheduler.singleThreaded.enqueue(message = "Opening database...") {
+            MemoryDataHolder.currentInstance.value = MemoryDataHolder(databaseFile)
+        }
     }
 
     private val stage
@@ -154,13 +171,15 @@ class MainView {
 
     @FXML
     fun initialize() {
+        subscribeToBackgroundScheduler()
+
         MemoryDataHolder.currentInstance.addListener { _, _, newHolder -> memoryDataHolderChanged(newHolder) }
 
         importMenu.disableProperty().bindAndMap(MemoryDataHolder.currentInstance) { it == null }
         editAccountsMenuItem.disableProperty().bindAndMap(MemoryDataHolder.currentInstance) { it == null }
         editDataMenuItem.disableProperty().bindAndMap(MemoryDataHolder.currentInstance) { it == null }
 
-        comboBoxLastTimeWindowUnit.items = FXCollections.observableArrayList(*values())
+        comboBoxLastTimeWindowUnit.items = FXCollections.observableArrayList(*AccountDisplayTimeUnit.values())
         comboBoxLastTimeWindowUnit.selectionModel.select(preferences[LastTimeWindowUnit])
         comboBoxLastTimeWindowUnit.selectionModel.selectedItemProperty().addListener { _, _, newValue ->
             preferences[LastTimeWindowUnit] = newValue
@@ -179,6 +198,7 @@ class MainView {
 
         tableColumnAccountNames.cellValueFactory = Account::name.cellValueFactory()
         tableColumnAccountBalances.cellValueFactory = Account::balance.cellValueFactory()
+
     }
 
     private fun updateLastAmountLabels(
@@ -237,16 +257,17 @@ class MainView {
             .let { FXCollections.observableArrayList(it) }
     }
 
-    private fun memoryDataHolderChanged(memoryDataHolder: MemoryDataHolder = MemoryDataHolder.currentInstance.value) {
-        tableViewCurrentAccountBalances.items = memoryDataHolder.accountList
-        updateData(memoryDataHolder.allAccountTransactions)
+    private fun memoryDataHolderChanged(memoryDataHolder: MemoryDataHolder = MemoryDataHolder.currentInstance.value) =
+        Platform.runLater {
+            tableViewCurrentAccountBalances.items = memoryDataHolder.accountList
+            updateData(memoryDataHolder.allAccountTransactions)
 
-        memoryDataHolder.accountList.addListener(ListChangeListener {
-            updateData(it.list.allTransactions)
-            it.list.addDataListener()
-        })
-        memoryDataHolder.accountList.addDataListener()
-    }
+            memoryDataHolder.accountList.addListener(ListChangeListener {
+                updateData(it.list.allTransactions)
+                it.list.addDataListener()
+            })
+            memoryDataHolder.accountList.addDataListener()
+        }
 
     private fun List<Account>.addDataListener() = this.forEach { account ->
         account.transactions.addListener(ListChangeListener {
@@ -254,8 +275,40 @@ class MainView {
         })
     }
 
-    private fun updateData(transactions: List<BankTransaction>) {
+    private fun updateData(transactions: List<BankTransaction>) = Platform.runLater {
         updateLastAmountLabels(transactions)
         updatePieChart(transactions)
+    }
+
+    private fun subscribeToBackgroundScheduler() {
+        BackgroundScheduler.onTaskEnqueuedListeners.add(this::onBackgroundTaskEnqueued)
+        BackgroundScheduler.taskQueue.addListener(ListChangeListener { change ->
+            Platform.runLater {
+                handleBackgroundJobUpdate(change.list)
+            }
+        })
+    }
+
+    private fun onBackgroundTaskEnqueued(task: Task<*>) {
+        task.stateProperty().addListener { _, _, _ ->
+            handleBackgroundJobUpdate(BackgroundScheduler.taskQueue)
+        }
+    }
+
+    private fun handleBackgroundJobUpdate(backgroundJobs: List<Task<*>>) {
+        if (backgroundJobs.isEmpty()) {
+            hBoxBackgroundJobs.isVisible = false
+            return
+        }
+
+        hBoxBackgroundJobs.isVisible = true
+
+        val firstRunningJob = backgroundJobs.firstOrNull { it.state == RUNNING } ?: backgroundJobs.first()
+
+        progressBarBackgroundJobs.progressProperty().bind(firstRunningJob.progressProperty())
+
+        val remainingJobsString = if (backgroundJobs.size == 1) "" else " (${backgroundJobs.size - 1} jobs enqueued)"
+
+        labelBackgroundJobName.textProperty().bind(firstRunningJob.messageProperty().concat(remainingJobsString))
     }
 }

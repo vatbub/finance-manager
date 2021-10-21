@@ -19,6 +19,7 @@
  */
 package com.github.vatbub.finance.manager.view
 
+import com.github.vatbub.finance.manager.BackgroundScheduler
 import com.github.vatbub.finance.manager.database.MemoryDataHolder
 import com.github.vatbub.finance.manager.model.Account
 import com.github.vatbub.finance.manager.model.BankTransaction
@@ -87,7 +88,7 @@ class ImportView {
         BankTransactionTableView(FXCollections.observableArrayList(transactionsToBeImported))
     }
 
-    private lateinit var stage:Stage
+    private lateinit var stage: Stage
 
     @FXML
     fun initialize() {
@@ -118,8 +119,10 @@ class ImportView {
     @FXML
     fun buttonImportOnAction() {
         val selectedAccount = comboBoxDestinationAccount.selectionModel.selectedItem
-            ?: throw IllegalStateException("Please select an account to import from")
-        selectedAccount.import(transactionsToBeImported)
+            ?: throw IllegalStateException("Please select an account to import to")
+        BackgroundScheduler.singleThreaded.enqueue(message = "Importing data...") {
+            selectedAccount.import(transactionsToBeImported)
+        }
         stage.hide()
     }
 

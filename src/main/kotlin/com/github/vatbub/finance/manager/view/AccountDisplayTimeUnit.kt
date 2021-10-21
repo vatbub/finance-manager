@@ -19,8 +19,10 @@
  */
 package com.github.vatbub.finance.manager.view
 
-enum class AccountDisplayTimeUnit(val displayString: String) {
+enum class AccountDisplayTimeUnit(private val displayString: String) {
     Days("Day(s)"),
     Months("Month(s)"),
-    Years("Year(s)")
+    Years("Year(s)");
+
+    override fun toString(): String = displayString
 }

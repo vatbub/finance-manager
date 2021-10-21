@@ -31,6 +31,7 @@ import com.github.vatbub.finance.manager.model.Account
 import com.github.vatbub.finance.manager.model.BankTransaction
 import com.github.vatbub.finance.manager.model.CurrencyAmount
 import com.github.vatbub.finance.manager.model.TransactionCategory
+import com.github.vatbub.finance.manager.util.bind
 import com.github.vatbub.finance.manager.util.bindAndMap
 import com.github.vatbub.finance.manager.util.isWithinRange
 import com.github.vatbub.finance.manager.view.AccountDisplayTimeUnit.*
@@ -38,14 +39,13 @@ import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
 import javafx.concurrent.Task
-import javafx.concurrent.Worker.State.RUNNING
 import javafx.fxml.FXML
 import javafx.scene.chart.PieChart
 import javafx.scene.control.*
-import javafx.scene.layout.HBox
-import javafx.scene.layout.VBox
+import javafx.scene.layout.AnchorPane
 import javafx.stage.FileChooser
 import javafx.util.converter.LongStringConverter
+import org.controlsfx.control.TaskProgressView
 import java.io.File
 import java.net.URL
 import java.time.LocalDate
@@ -61,7 +61,7 @@ class MainView {
     private lateinit var location: URL
 
     @FXML
-    private lateinit var rootPane: VBox
+    private lateinit var rootPane: AnchorPane
 
     @FXML
     private lateinit var textFieldLastTimeWindowAmount: TextField
@@ -97,14 +97,9 @@ class MainView {
     private lateinit var editDataMenuItem: MenuItem
 
     @FXML
-    private lateinit var hBoxBackgroundJobs: HBox
+    private lateinit var titledPaneBackgroundJobs: TitledPane
 
-    @FXML
-    private lateinit var labelBackgroundJobName: Label
-
-    @FXML
-    private lateinit var progressBarBackgroundJobs: ProgressBar
-
+    private val taskProgressView by lazy { TaskProgressView<Task<*>>() }
 
     @FXML
     fun aboutAction() {
@@ -171,6 +166,7 @@ class MainView {
 
     @FXML
     fun initialize() {
+        titledPaneBackgroundJobs.content = taskProgressView
         subscribeToBackgroundScheduler()
 
         MemoryDataHolder.currentInstance.addListener { _, _, newHolder -> memoryDataHolderChanged(newHolder) }
@@ -281,34 +277,36 @@ class MainView {
     }
 
     private fun subscribeToBackgroundScheduler() {
-        BackgroundScheduler.onTaskEnqueuedListeners.add(this::onBackgroundTaskEnqueued)
+        taskProgressView.tasks.bind(BackgroundScheduler.taskQueue)
+
+        updateBackgroundTasksTitle(BackgroundScheduler.taskQueue)
         BackgroundScheduler.taskQueue.addListener(ListChangeListener { change ->
-            Platform.runLater {
-                handleBackgroundJobUpdate(change.list)
-            }
+            Platform.runLater { updateBackgroundTasksTitle(change.list) }
         })
     }
 
-    private fun onBackgroundTaskEnqueued(task: Task<*>) {
-        task.stateProperty().addListener { _, _, _ ->
-            handleBackgroundJobUpdate(BackgroundScheduler.taskQueue)
+    private fun updateBackgroundTasksTitle(backgroundTasks: List<Task<*>>) {
+        val baseTitle = "Background Tasks"
+
+        titledPaneBackgroundJobs.text = if (backgroundTasks.isEmpty()) {
+            baseTitle
+        } else if (backgroundTasks.size == 1) {
+            val task = backgroundTasks.first()
+            task.messageProperty().addListener { _, _, _ -> updateBackgroundTasksTitle(backgroundTasks) }
+            "$baseTitle: ${task.message}"
+        } else {
+            val taskCounts = mapOf(
+                "running" to backgroundTasks.filter { BackgroundScheduler.taskRunningStates.contains(it.state) },
+                "enqueued" to backgroundTasks.filter { BackgroundScheduler.taskEnqueuedStates.contains(it.state) },
+                "finished" to backgroundTasks.filter { BackgroundScheduler.taskFinishedStates.contains(it.state) },
+            )
+
+            val taskCountString = taskCounts
+                .filter { it.value.isNotEmpty() }
+                .map { "${it.value.size} ${it.key}" }
+                .joinToString(separator = ", ")
+
+            "$baseTitle: $taskCountString"
         }
-    }
-
-    private fun handleBackgroundJobUpdate(backgroundJobs: List<Task<*>>) {
-        if (backgroundJobs.isEmpty()) {
-            hBoxBackgroundJobs.isVisible = false
-            return
-        }
-
-        hBoxBackgroundJobs.isVisible = true
-
-        val firstRunningJob = backgroundJobs.firstOrNull { it.state == RUNNING } ?: backgroundJobs.first()
-
-        progressBarBackgroundJobs.progressProperty().bind(firstRunningJob.progressProperty())
-
-        val remainingJobsString = if (backgroundJobs.size == 1) "" else " (${backgroundJobs.size - 1} jobs enqueued)"
-
-        labelBackgroundJobName.textProperty().bind(firstRunningJob.messageProperty().concat(remainingJobsString))
     }
 }

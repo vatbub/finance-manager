@@ -23,12 +23,10 @@ import com.github.vatbub.finance.manager.logging.logger
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.concurrent.Task
-import javafx.concurrent.Worker
+import javafx.concurrent.Worker.State.*
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-
-private val taskFinishedStates = listOf(Worker.State.FAILED, Worker.State.CANCELLED, Worker.State.SUCCEEDED)
 
 object BackgroundScheduler {
     val singleThreaded = SingleThreadedBackgroundScheduler()
@@ -50,6 +48,10 @@ object BackgroundScheduler {
             multiThreaded.shutdown(onShutdownCompleteCallback)
         }
     }
+
+    val taskEnqueuedStates = listOf(READY, SCHEDULED)
+    val taskRunningStates = listOf(RUNNING)
+    val taskFinishedStates = listOf(FAILED, CANCELLED, SUCCEEDED)
 }
 
 
@@ -82,33 +84,33 @@ abstract class BackgroundSchedulerBase {
     }
 
     private fun Runnable.toTask(message: String?) = object : Task<Unit>() {
+        init {
+            if (message != null) updateMessage(message)
+        }
+
         override fun failed() {
             exception?.let { throw it }
         }
 
         override fun call() {
-            if (message != null) {
-                logger.info(message)
-                updateMessage(message)
-            } else {
-                logger.info("Starting a background task...")
-            }
+            if (message != null) logger.info(message)
+            else logger.info("Starting a background task...")
             this@toTask.run()
         }
     }
 
     private fun <T> Callable<T>.toTask(message: String?) = object : Task<T>() {
+        init {
+            if (message != null) updateMessage(message)
+        }
+
         override fun failed() {
             exception?.let { throw it }
         }
 
         override fun call(): T {
-            if (message != null) {
-                logger.info(message)
-                updateMessage(message)
-            } else {
-                logger.info("Starting a background task...")
-            }
+            if (message != null) logger.info(message)
+            else logger.info("Starting a background task...")
             return this@toTask.call()
         }
     }

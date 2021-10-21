@@ -29,6 +29,7 @@ module finance.manager {
     requires kotlin.reflect;
     requires kotlinPreferences;
     requires org.slf4j;
+    requires org.controlsfx.controls;
 
     opens com.github.vatbub.finance.manager.view to javafx.graphics, javafx.fxml, javafx.base;
     opens com.github.vatbub.finance.manager to javafx.graphics, javafx.fxml, javafx.base;

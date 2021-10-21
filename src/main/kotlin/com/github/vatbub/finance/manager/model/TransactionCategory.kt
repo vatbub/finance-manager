@@ -23,12 +23,14 @@ import com.github.vatbub.finance.manager.model.TransactionCategory.*
 
 enum class TransactionCategory {
     Food, Unknown, Electronics, Rent, Transport, Entertainment, Insurances, Salary, Medical, Phone, OtherShopping,
-    Fees, Renovation, Gifts, Transfer, Beauty, Clothing, Sport, Hobbies, Furniture
+    Fees, Renovation, Gifts, Transfer, Beauty, Clothing, Sport, Hobbies, Furniture, Holidays, Garden, Communication,
+    Education, GovernmentalSupport, Interest
 }
 
 fun String.toTransactionCategory(): TransactionCategory = when (this) {
     "Lebensmittel" -> Food
     "Restaurants & Cafes" -> Food
+    "Essen & Trinken (Sonstiges)" -> Food
     "Unkategorisierte Ausgaben" -> Unknown
     "Unkategorisierte Einnahmen" -> Unknown
     "Einnahmen (Sonstiges)" -> Unknown
@@ -44,6 +46,8 @@ fun String.toTransactionCategory(): TransactionCategory = when (this) {
     "Versicherungen (Sonstiges)" -> Insurances
     "Gehalt & Lohn" -> Salary
     "Arzneimittel & Medizinprodukte" -> Medical
+    "Gesundheit & Pflege (Sonstiges)" -> Medical
+    "Ärzte & Krankenhaus" -> Medical
     "Mobilfunk" -> Phone
     "Einkäufe & Dienstleistungen (Sonstiges)" -> OtherShopping
     "Gebühren & Zinsen" -> Fees
@@ -51,11 +55,28 @@ fun String.toTransactionCategory(): TransactionCategory = when (this) {
     "Renovierung & Instandhaltung" -> Renovation
     "Geschenke & Spenden" -> Gifts
     "Geldautomat & Barauszahlung" -> Transfer
+    "Umbuchung zwischen Konten " -> Transfer
     "Friseur & Körperpflege" -> Beauty
     "Kleidung & Schuhe" -> Clothing
     "Freizeit & Sport (Sonstiges)" -> Sport
     "Haushaltsgeräte & Einrichtung" -> Furniture
     "Vereine & Mitgliedschaften" -> Hobbies
     "Kfz: Stellplatz" -> Transport
+    "Mietwagen & Carsharing" -> Transport
+    "Kfz: Finanzierung" -> Transport
+    "Krankenversicherung" -> Insurances
+    "Zusatzversicherungen" -> Insurances
+    "Spielzeug" -> Hobbies
+    "Kino, Theater & Events" -> Hobbies
+    "Hotels & Unterkunft" -> Holidays
+    "Kommunikation & Unterhaltung" -> Communication
+    "Unterricht, Studiengebühren & Kurse" -> Education
+    "Staatliche Hilfe" -> GovernmentalSupport
+    "Garten & Außenanlagen" -> Garden
+    "Zins- & Kapitalerträge" -> Interest
+    "Workout & Fitness" -> Sport
+    "Zubuchung" -> Transfer
+    "Bars, Clubs & Nachtleben" -> Hobbies
+    "Ausbildung" -> Education
     else -> valueOf(this)
 }

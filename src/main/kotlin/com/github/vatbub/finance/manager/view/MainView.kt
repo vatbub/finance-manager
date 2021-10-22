@@ -34,6 +34,7 @@ import com.github.vatbub.finance.manager.model.TransactionCategory
 import com.github.vatbub.finance.manager.util.bind
 import com.github.vatbub.finance.manager.util.bindAndMap
 import com.github.vatbub.finance.manager.util.isWithinRange
+import com.github.vatbub.finance.manager.util.roundTo
 import com.github.vatbub.finance.manager.view.AccountDisplayTimeUnit.*
 import javafx.application.Platform
 import javafx.collections.FXCollections
@@ -218,11 +219,13 @@ class MainView {
         labelLastEarnings.text = relevantTransactions
             .filter { it >= 0 }
             .sum()
+            .roundTo(decimalPlaces = 2)
             .toString() + " €"
         labelLastSpendings.text = relevantTransactions
             .filter { it < 0 }
             .sum()
             .let { abs(it) }
+            .roundTo(decimalPlaces = 2)
             .toString() + " €"
     }
 

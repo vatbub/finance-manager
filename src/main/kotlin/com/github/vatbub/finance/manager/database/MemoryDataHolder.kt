@@ -20,6 +20,7 @@
 package com.github.vatbub.finance.manager.database
 
 import com.github.vatbub.finance.manager.BackgroundScheduler
+import com.github.vatbub.finance.manager.logging.logger
 import com.github.vatbub.finance.manager.model.Account
 import com.github.vatbub.finance.manager.model.ObservableWithObservableListProperties
 import com.github.vatbub.finance.manager.model.ObservableWithObservableProperties
@@ -30,6 +31,7 @@ import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.collections.ListChangeListener
+import javafx.concurrent.Task
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.io.File
@@ -82,42 +84,77 @@ class MemoryDataHolder(val database: Database) : KeyValueProvider {
         accountList.addListenersToObjects()
     }
 
-    private fun privateSave() = BackgroundScheduler.singleThreaded.enqueue(message = "Saving data to disk...") {
-        transaction(db = database) {
-            financialTables.forEach { it.deleteAll() }
+    private fun privateSave() = BackgroundScheduler.singleThreaded.enqueue(object : Task<Unit>() {
+        init {
+            updateMessage("Saving data to disk...")
+        }
 
-            val tags = accountList
-                .map { account -> account.transactions.map { it.tags } }
-                .flatten()
-                .flatten()
-                .groupBy { it }
-                .keys
-                .associateWith { tag ->
-                    Tags.insertAndGetId {
-                        it[Tags.tag] = tag
-                    }.value
+        override fun failed() {
+            exception?.let { throw it }
+        }
+
+        val totalWork: Long =
+            financialTables.size.toLong() +
+                    1L + // Tags
+                    accountList.size.toLong() +
+                    accountList.sumOf { it.transactions.size }
+
+        var workDone = -1L
+
+        fun stepDone() {
+            if (workDone < 0) workDone = 1
+            else workDone++
+            updateProgress(workDone, totalWork)
+        }
+
+        override fun call() {
+            logger.info("Saving data to disk...")
+            updateProgress(workDone, totalWork)
+
+            transaction(db = database) {
+                financialTables.forEach {
+                    it.deleteAll()
+                    stepDone()
                 }
 
+                val tags = accountList
+                    .map { account -> account.transactions.map { it.tags } }
+                    .flatten()
+                    .flatten()
+                    .groupBy { it }
+                    .keys
+                    .associateWith { tag ->
+                        Tags.insertAndGetId {
+                            it[Tags.tag] = tag
+                        }.value
+                    }
 
-            accountList.forEach { account ->
-                val accountId = Accounts.insertAndGetId {
-                    it[name] = account.name.value
-                }.value
+                stepDone()
 
-                account.transactions.forEach { bankTransaction ->
-                    val bankTransactionId = BankTransactions.insertAndGetId {
-                        bankTransaction.toDatabaseBankTransaction(accountId, it)
+                accountList.forEach { account ->
+                    val accountId = Accounts.insertAndGetId {
+                        it[name] = account.name.value
                     }.value
 
-                    storeTagRelation(
-                        bankTransactionId,
-                        bankTransaction.tags
-                            .map { tag -> tags[tag]!! }
-                    )
+                    stepDone()
+
+                    account.transactions.forEach { bankTransaction ->
+                        val bankTransactionId = BankTransactions.insertAndGetId {
+                            bankTransaction.toDatabaseBankTransaction(accountId, it)
+                        }.value
+
+                        storeTagRelation(
+                            bankTransactionId,
+                            bankTransaction.tags
+                                .map { tag -> tags[tag]!! }
+                        )
+
+                        stepDone()
+                    }
                 }
             }
         }
-    }
+    })
 
     private fun storeTagRelation(bankTransactionId: Int, tagIds: List<Int>) {
         tagIds.forEach { tagId ->

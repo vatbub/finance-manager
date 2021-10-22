@@ -20,6 +20,7 @@
 package com.github.vatbub.finance.manager
 
 import com.github.vatbub.finance.manager.logging.logger
+import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.concurrent.Task
@@ -27,6 +28,7 @@ import javafx.concurrent.Worker.State.*
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.properties.Delegates
 
 object BackgroundScheduler {
     val singleThreaded = SingleThreadedBackgroundScheduler()
@@ -72,8 +74,9 @@ abstract class BackgroundSchedulerBase {
     }
 
     fun enqueue(message: String? = null, runnable: Runnable) = enqueue(runnable.toTask(message))
-
     fun <T> enqueue(message: String? = null, callable: Callable<T>) = enqueue(callable.toTask(message))
+
+    fun enqueue(runnable: RunnableWithProgressUpdates<*>) = enqueue(runnable as Task<*>)
 
     fun shutdown(onShutdownCompleteCallback: (() -> Unit)? = null) {
         executorService.shutdown()
@@ -134,4 +137,40 @@ class SingleThreadedBackgroundScheduler : BackgroundSchedulerBase() {
 
 class MultiThreadedBackgroundScheduler(maxPoolSize: Int = 5) : BackgroundSchedulerBase() {
     override val executorService: ExecutorService = Executors.newFixedThreadPool(maxPoolSize)
+}
+
+class RunnableWithProgressUpdates<T>(
+    private val taskMessage: String? = null,
+    private val totalSteps: Long,
+    private val block: RunnableWithProgressUpdates<T>.() -> T
+) : Task<T>() {
+    init {
+        if (message != null) updateMessage(taskMessage)
+
+        updateProgress(-1L, totalSteps)
+    }
+
+    var workDone: Long by Delegates.observable(-1) { _, _, newValue ->
+        Platform.runLater {
+            updateProgress(newValue, totalSteps)
+        }
+    }
+
+    fun stepDone() {
+        if (workDone < 0) workDone = 1
+        else workDone++
+    }
+
+    override fun failed() {
+        exception?.let { throw it }
+    }
+
+    override fun call(): T {
+        if (taskMessage != null) logger.info(taskMessage)
+        else logger.info("Starting a background task...")
+
+        updateProgress(workDone, totalSteps)
+
+        return block(this)
+    }
 }

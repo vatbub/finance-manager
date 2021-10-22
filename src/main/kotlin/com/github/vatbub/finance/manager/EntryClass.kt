@@ -21,10 +21,15 @@ package com.github.vatbub.finance.manager
 
 import com.github.vatbub.finance.manager.view.MainView
 import javafx.application.Application
+import javafx.application.Platform
+import javafx.collections.ListChangeListener
+import javafx.concurrent.Task
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.stage.Stage
+import org.controlsfx.dialog.ProgressDialog
+import java.util.concurrent.Executors
 
 const val appId = "com.github.vatbub.finance.manager"
 
@@ -69,10 +74,35 @@ class EntryClass private constructor(callLaunch: Boolean, vararg args: String?) 
 
         primaryStage.scene = scene
 
+        primaryStage.setOnCloseRequest { event ->
+            shutdownAndClose()
+            event.consume()
+        }
+
         primaryStage.show()
     }
 
-    override fun stop() {
-        BackgroundScheduler.shutdown()
+    fun shutdownAndClose() {
+        ProgressDialog(shutdownBackgroundSchedulerTask).show()
+        with(Executors.newSingleThreadExecutor()) {
+            submit(shutdownBackgroundSchedulerTask)
+            shutdown()
+        }
+    }
+
+    private val shutdownBackgroundSchedulerTask = object : Task<Unit>() {
+        override fun call() {
+            updateMessage("Waiting for background tasks to finish...")
+
+            val totalTaskCount = BackgroundScheduler.taskQueue.size.toDouble()
+            updateProgress(-1.0, totalTaskCount)
+
+            BackgroundScheduler.taskQueue.addListener(ListChangeListener { change ->
+                updateProgress(totalTaskCount - change.list.size.toDouble(), totalTaskCount)
+            })
+
+            BackgroundScheduler.shutdownAndWait()
+            Platform.exit()
+        }
     }
 }

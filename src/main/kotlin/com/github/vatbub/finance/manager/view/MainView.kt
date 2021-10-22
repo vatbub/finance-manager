@@ -108,7 +108,7 @@ class MainView {
 
     @FXML
     fun closeProgramAction() {
-        Platform.exit()
+        EntryClass.instance?.shutdownAndClose()
     }
 
     @FXML

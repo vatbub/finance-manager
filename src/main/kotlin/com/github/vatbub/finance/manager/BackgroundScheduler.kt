@@ -49,6 +49,11 @@ object BackgroundScheduler {
         }
     }
 
+    fun shutdownAndWait() {
+        singleThreaded.shutdownAndWait()
+        multiThreaded.shutdownAndWait()
+    }
+
     val taskEnqueuedStates = listOf(READY, SCHEDULED)
     val taskRunningStates = listOf(RUNNING)
     val taskFinishedStates = listOf(FAILED, CANCELLED, SUCCEEDED)
@@ -80,6 +85,13 @@ abstract class BackgroundSchedulerBase {
             onShutdownCompleteCallback()
         }.also {
             it.start()
+        }
+    }
+
+    fun shutdownAndWait() {
+        executorService.shutdown()
+        while (!executorService.isTerminated) {
+            Thread.sleep(100)
         }
     }
 
@@ -120,6 +132,6 @@ class SingleThreadedBackgroundScheduler : BackgroundSchedulerBase() {
     override val executorService: ExecutorService = Executors.newSingleThreadExecutor()
 }
 
-class MultiThreadedBackgroundScheduler(private val maxPoolSize: Int = 5) : BackgroundSchedulerBase() {
+class MultiThreadedBackgroundScheduler(maxPoolSize: Int = 5) : BackgroundSchedulerBase() {
     override val executorService: ExecutorService = Executors.newFixedThreadPool(maxPoolSize)
 }

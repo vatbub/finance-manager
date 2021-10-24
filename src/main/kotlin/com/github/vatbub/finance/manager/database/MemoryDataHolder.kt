@@ -25,7 +25,6 @@ import com.github.vatbub.finance.manager.model.Account
 import com.github.vatbub.finance.manager.model.ObservableWithObservableListProperties
 import com.github.vatbub.finance.manager.model.ObservableWithObservableProperties
 import com.github.vatbub.kotlin.preferences.KeyValueProvider
-import com.github.vatbub.kotlin.preferences.MemoryKeyValueProvider
 import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
 import javafx.beans.value.ObservableValue
@@ -47,8 +46,6 @@ class MemoryDataHolder(val database: Database) : KeyValueProvider {
             this(database.toJdbcConnectionString())
 
     val accountList = FXCollections.observableArrayList<Account>()
-
-    private val preferenceKeyValueProvider = MemoryKeyValueProvider()
 
     private val listSaveListener: ListChangeListener<Any> by lazy {
         ListChangeListener<Any> { change ->
@@ -76,7 +73,6 @@ class MemoryDataHolder(val database: Database) : KeyValueProvider {
 
     init {
         transaction(db = database) { SchemaUtils.createMissingTablesAndColumns(*tables.toTypedArray()) }
-        restorePreferences()
         restoreFromDatabase()
 
         accountList.addListener(listSaveListener)
@@ -171,32 +167,37 @@ class MemoryDataHolder(val database: Database) : KeyValueProvider {
         accountList.addAll(newAccountList)
     }
 
-    private fun storePreferences() = transaction(db = database) {
-        Preferences.deleteAll()
-        preferenceKeyValueProvider.contents.forEach { (key, value) ->
+    override val isPersistent: Boolean = true
+
+    override fun get(key: String): String? = transaction(db = database) {
+        Preferences.select {
+            Preferences.key eq key
+        }.firstOrNull()
+            ?.get(Preferences.value)
+    }
+
+    override fun set(key: String, value: String?) = transaction(db = database) {
+        if (value == null) {
+            Preferences.deleteWhere { Preferences.key eq key }
+            return@transaction
+        }
+
+        val keyExists = Preferences.select {
+            Preferences.key eq key
+        }.count() > 0
+
+        if (keyExists) {
             Preferences.insert {
                 it[Preferences.key] = key
                 it[Preferences.value] = value
             }
+        } else {
+            Preferences.update(where = {
+                Preferences.key eq key
+            }) {
+                it[Preferences.value] = value
+            }
         }
-    }
-
-    private fun restorePreferences() = transaction(db = database) {
-        val preferenceContents = Preferences.selectAll()
-            .associate { it[Preferences.key] to it[Preferences.value] }
-        preferenceKeyValueProvider.contents.let {
-            it.clear()
-            it.putAll(preferenceContents)
-        }
-    }
-
-    override val isPersistent: Boolean = true
-
-    override fun get(key: String): String? = preferenceKeyValueProvider[key]
-
-    override fun set(key: String, value: String?) {
-        preferenceKeyValueProvider[key] = value
-        storePreferences()
     }
 }
 

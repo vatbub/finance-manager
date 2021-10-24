@@ -49,11 +49,11 @@ object BankTransactionsToTagsRelation : Table() {
     override val primaryKey = PrimaryKey(transactionId, tagId)
 }
 
-object Accounts: IntIdTable() {
+object Accounts : IntIdTable() {
     val name = varchar("name", 100)
 }
 
-object Preferences:Table() {
+object Preferences : Table() {
     val key = varchar("key", 100)
     val value = varchar("value", 100)
     override val primaryKey = PrimaryKey(key)

@@ -54,7 +54,7 @@ class Account(
     fun import(bankTransactions: List<BankTransaction>) {
         transactions.addAll(
             bankTransactions
-                .filterNot { bankTransaction -> transactions.contains(bankTransaction) }
+                .filter { it.selected.value }
         )
     }
 }

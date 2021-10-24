@@ -35,6 +35,7 @@ import javafx.stage.Stage
 import javafx.util.StringConverter
 import java.net.URL
 import java.util.*
+import kotlin.properties.Delegates
 
 
 class ImportView {
@@ -85,7 +86,9 @@ class ImportView {
     private lateinit var transactionsToBeImported: List<BankTransaction>
 
     private val transactionTableView by lazy {
-        BankTransactionTableView(FXCollections.observableArrayList(transactionsToBeImported))
+        BankTransactionTableView(FXCollections.observableArrayList(transactionsToBeImported)).also {
+            it.isEditable = true
+        }
     }
 
     private lateinit var stage: Stage

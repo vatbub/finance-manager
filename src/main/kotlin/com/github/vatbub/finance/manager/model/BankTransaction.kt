@@ -22,10 +22,7 @@ package com.github.vatbub.finance.manager.model
 import com.github.vatbub.finance.manager.calculations.similarityTo
 import com.github.vatbub.finance.manager.calculations.weightOf
 import com.github.vatbub.finance.manager.calculations.weightedAverage
-import javafx.beans.property.ObjectProperty
-import javafx.beans.property.SimpleObjectProperty
-import javafx.beans.property.SimpleStringProperty
-import javafx.beans.property.StringProperty
+import javafx.beans.property.*
 import javafx.beans.value.ObservableValue
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
@@ -41,7 +38,8 @@ class BankTransaction(
     val usageText: StringProperty,
     val category: ObjectProperty<TransactionCategory>,
     val tags: ObservableList<String>,
-    val amount: ObjectProperty<CurrencyAmount>
+    val amount: ObjectProperty<CurrencyAmount>,
+    val selected: BooleanProperty
 ) : ObservableWithObservableProperties, ObservableWithObservableListProperties {
     constructor(
         bookingDate: LocalDate?,
@@ -53,7 +51,8 @@ class BankTransaction(
         usageText: String?,
         category: TransactionCategory?,
         tags: List<String>,
-        amount: CurrencyAmount
+        amount: CurrencyAmount,
+        selected: Boolean = true
     ) : this(
         SimpleObjectProperty<LocalDate>(bookingDate),
         SimpleObjectProperty<LocalDate>(valutaDate),
@@ -64,7 +63,8 @@ class BankTransaction(
         SimpleStringProperty(usageText),
         SimpleObjectProperty<TransactionCategory>(category),
         FXCollections.observableArrayList(tags),
-        SimpleObjectProperty<CurrencyAmount>(amount)
+        SimpleObjectProperty<CurrencyAmount>(amount),
+        SimpleBooleanProperty(selected)
     )
 
     infix fun similarityTo(other: BankTransaction): Double = listOf(

@@ -26,12 +26,15 @@ import com.github.vatbub.finance.manager.model.Account
 import com.github.vatbub.finance.manager.model.BankTransaction
 import com.github.vatbub.finance.manager.util.parallelForEach
 import javafx.application.Platform
+import javafx.beans.property.SimpleBooleanProperty
 import javafx.collections.FXCollections
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.scene.Parent
 import javafx.scene.Scene
+import javafx.scene.control.Button
 import javafx.scene.control.ComboBox
+import javafx.scene.control.Label
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
@@ -87,8 +90,14 @@ class ImportView {
     @FXML
     private lateinit var comboBoxDestinationAccount: ComboBox<Account>
 
+    @FXML
+    private lateinit var buttonImport: Button
+
+    @FXML
+    private lateinit var labelWaitForBackgroundTasks: Label
+
     private var transactionsToBeImported: List<BankTransaction> by Delegates.observable(listOf()) { _, _, newValue ->
-        deselectDuplicates(newValue)
+        deselectDuplicatesAndIncompleteTransactions(newValue)
     }
 
     private val transactionTableView by lazy {
@@ -97,6 +106,8 @@ class ImportView {
         }
     }
 
+    private val duplicateDetectionInProgress = SimpleBooleanProperty(false)
+
     private lateinit var stage: Stage
 
     @FXML
@@ -104,6 +115,9 @@ class ImportView {
         MemoryDataHolder.currentInstance.addListener { _, _, newHolder ->
             memoryDataHolderChanged(newHolder)
         }
+
+        buttonImport.disableProperty().bind(duplicateDetectionInProgress)
+        labelWaitForBackgroundTasks.visibleProperty().bind(duplicateDetectionInProgress)
 
         comboBoxDestinationAccount.converter = object : StringConverter<Account>() {
             override fun toString(`object`: Account?): String = `object`?.name?.value ?: "<null>"
@@ -144,7 +158,7 @@ class ImportView {
         comboBoxDestinationAccount.selectionModel.select(currentIndex)
     }
 
-    private fun deselectDuplicates(transactionsToImport: List<BankTransaction>) {
+    private fun deselectDuplicatesAndIncompleteTransactions(transactionsToImport: List<BankTransaction>) {
         val allTransactions = MemoryDataHolder.currentInstance.value
             .accountList
             .map { it.transactions }
@@ -155,19 +169,33 @@ class ImportView {
                 taskMessage = "Finding duplicates...",
                 totalSteps = allTransactions.size.toLong()
             ) {
-                if (allTransactions.isEmpty()) return@RunnableWithProgressUpdates
+                duplicateDetectionInProgress.value = true
 
                 transactionsToImport.parallelForEach() { transactionToEvaluate ->
-                    val maxSimilarity = allTransactions.maxOf { existingTransaction ->
-                        transactionToEvaluate similarityTo existingTransaction
+                    if (transactionToEvaluate.isIncomplete()) {
+                        Platform.runLater { transactionToEvaluate.selected.value = false }
+                        return@parallelForEach
                     }
+
+                    if (allTransactions.isEmpty()) return@parallelForEach
+
+                    val maxSimilarity = allTransactions
+                        .filter { transactionToEvaluate.bookingDate.value == it.bookingDate.value }
+                        .filter { transactionToEvaluate.valutaDate.value == it.valutaDate.value }
+                        .maxOf { it similarityTo transactionToEvaluate }
 
                     stepDone()
 
-                    if (maxSimilarity >= 0.999) {
-                        Platform.runLater { transactionToEvaluate.selected.value = false }
-                    }
+                    if (maxSimilarity < 0.999) return@parallelForEach
+                    Platform.runLater { transactionToEvaluate.selected.value = false }
                 }
+
+                duplicateDetectionInProgress.value = false
             })
+    }
+
+    private fun BankTransaction.isIncomplete(): Boolean {
+        return bookingDate.value == null ||
+                valutaDate.value == null
     }
 }

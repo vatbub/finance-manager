@@ -20,9 +20,12 @@
 package com.github.vatbub.finance.manager.view
 
 import com.github.vatbub.finance.manager.BackgroundScheduler
+import com.github.vatbub.finance.manager.RunnableWithProgressUpdates
 import com.github.vatbub.finance.manager.database.MemoryDataHolder
 import com.github.vatbub.finance.manager.model.Account
 import com.github.vatbub.finance.manager.model.BankTransaction
+import com.github.vatbub.finance.manager.util.parallelForEach
+import javafx.application.Platform
 import javafx.collections.FXCollections
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -83,7 +86,9 @@ class ImportView {
     @FXML
     private lateinit var comboBoxDestinationAccount: ComboBox<Account>
 
-    private lateinit var transactionsToBeImported: List<BankTransaction>
+    private var transactionsToBeImported: List<BankTransaction> by Delegates.observable(listOf()) { _, _, newValue ->
+        deselectDuplicates(newValue)
+    }
 
     private val transactionTableView by lazy {
         BankTransactionTableView(FXCollections.observableArrayList(transactionsToBeImported)).also {
@@ -135,5 +140,32 @@ class ImportView {
         }
         comboBoxDestinationAccount.items = memoryDataHolder.accountList
         comboBoxDestinationAccount.selectionModel.select(currentIndex)
+    }
+
+    private fun deselectDuplicates(transactionsToImport: List<BankTransaction>) {
+        val allTransactions = MemoryDataHolder.currentInstance.value
+            .accountList
+            .map { it.transactions }
+            .flatten()
+
+        BackgroundScheduler.multiThreaded.enqueue(
+            RunnableWithProgressUpdates<Unit>(
+                taskMessage = "Finding duplicates...",
+                totalSteps = allTransactions.size.toLong()
+            ) {
+                if (allTransactions.isEmpty()) return@RunnableWithProgressUpdates
+
+                transactionsToImport.parallelForEach() { transactionToEvaluate ->
+                    val maxSimilarity = allTransactions.maxOf { existingTransaction ->
+                        transactionToEvaluate similarityTo existingTransaction
+                    }
+
+                    stepDone()
+
+                    if (maxSimilarity >= 0.999) {
+                        Platform.runLater { transactionToEvaluate.selected.value = false }
+                    }
+                }
+            })
     }
 }

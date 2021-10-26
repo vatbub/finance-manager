@@ -39,6 +39,7 @@ class BankTransaction(
     val category: ObjectProperty<TransactionCategory>,
     val tags: ObservableList<String>,
     val amount: ObjectProperty<CurrencyAmount>,
+    val recurringBankTransaction: ObjectProperty<RecurringBankTransaction>,
     val selected: BooleanProperty
 ) : ObservableWithObservableProperties, ObservableWithObservableListProperties {
     constructor(
@@ -52,6 +53,7 @@ class BankTransaction(
         category: TransactionCategory?,
         tags: List<String>,
         amount: CurrencyAmount,
+        recurringBankTransaction: RecurringBankTransaction? = null,
         selected: Boolean = true
     ) : this(
         SimpleObjectProperty<LocalDate>(bookingDate),
@@ -64,6 +66,7 @@ class BankTransaction(
         SimpleObjectProperty<TransactionCategory>(category),
         FXCollections.observableArrayList(tags),
         SimpleObjectProperty<CurrencyAmount>(amount),
+        SimpleObjectProperty(recurringBankTransaction),
         SimpleBooleanProperty(selected)
     )
 

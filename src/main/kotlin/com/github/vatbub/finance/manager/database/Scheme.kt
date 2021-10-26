@@ -36,6 +36,11 @@ object BankTransactions : IntIdTable() {
     val category = enumeration("category", TransactionCategory::class).nullable()
     val amount = double("amount")
     val currency = enumeration("currency", Currency::class)
+    val recurringTransactionId = integer("recurringTransactionId").references(RecurringTransactions.id).nullable()
+}
+
+object RecurringTransactions : IntIdTable() {
+    val description = varchar("description", 100)
 }
 
 object Tags : IntIdTable() {
@@ -59,6 +64,6 @@ object Preferences : Table() {
     override val primaryKey = PrimaryKey(key)
 }
 
-val financialTables = listOf(BankTransactions, Tags, BankTransactionsToTagsRelation, Accounts)
+val financialTables = listOf(BankTransactions, Tags, BankTransactionsToTagsRelation, Accounts, RecurringTransactions)
 val nonFinancialTables = listOf(Preferences)
 val tables = financialTables + nonFinancialTables

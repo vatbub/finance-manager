@@ -24,6 +24,7 @@ import com.github.vatbub.finance.manager.RunnableWithProgressUpdates
 import com.github.vatbub.finance.manager.model.Account
 import com.github.vatbub.finance.manager.model.ObservableWithObservableListProperties
 import com.github.vatbub.finance.manager.model.ObservableWithObservableProperties
+import com.github.vatbub.finance.manager.model.RecurringBankTransaction
 import com.github.vatbub.kotlin.preferences.KeyValueProvider
 import javafx.beans.property.ObjectProperty
 import javafx.beans.property.SimpleObjectProperty
@@ -114,8 +115,12 @@ class MemoryDataHolder(val database: Database) : KeyValueProvider {
                 stepDone()
 
                 account.transactions.forEach { bankTransaction ->
+                    val recurringTransactionId =
+                        bankTransaction.recurringBankTransaction.value?.let { getOrInsertRecurringTransaction(it) }
+
                     val bankTransactionId = BankTransactions.insertAndGetId {
                         bankTransaction.toDatabaseBankTransaction(accountId, it)
+                        it[BankTransactions.recurringTransactionId] = recurringTransactionId
                     }.value
 
                     storeTagRelation(
@@ -139,10 +144,23 @@ class MemoryDataHolder(val database: Database) : KeyValueProvider {
         }
     }
 
-    private fun getAllBankTransactions(accountId: Int) =
+    private fun getOrInsertRecurringTransaction(recurringBankTransaction: RecurringBankTransaction): Int {
+        RecurringTransactions
+            .select { RecurringTransactions.description eq recurringBankTransaction.description.value }
+            .firstOrNull()
+            ?.get(RecurringTransactions.id)
+            ?.value
+            ?.let { return it }
+
+        return RecurringTransactions.insertAndGetId {
+            it[description] = recurringBankTransaction.description.value
+        }.value
+    }
+
+    private fun getAllBankTransactions(accountId: Int, recurringTransactions: Map<Int, RecurringBankTransaction>) =
         BankTransactions.select {
             BankTransactions.accountId eq accountId
-        }.map { it.toMemoryTransaction(getTagsFor(it[BankTransactions.id].value)) }
+        }.map { it.toMemoryTransaction(getTagsFor(it[BankTransactions.id].value), recurringTransactions) }
 
     private fun getTagsFor(bankTransactionId: Int): List<String> = transaction {
         val relationQuery = BankTransactionsToTagsRelation.select {
@@ -155,10 +173,14 @@ class MemoryDataHolder(val database: Database) : KeyValueProvider {
 
     private fun restoreFromDatabase() {
         val newAccountList: List<Account> = transaction(db = database) {
+            val recurringTransactions = RecurringTransactions
+                .selectAll()
+                .associate { it[RecurringTransactions.id].value to RecurringBankTransaction(it[RecurringTransactions.description]) }
+
             Accounts.selectAll().map {
                 Account(
                     name = it[Accounts.name],
-                    transactions = getAllBankTransactions(it[Accounts.id].value)
+                    transactions = getAllBankTransactions(it[Accounts.id].value, recurringTransactions)
                 )
             }
         }

@@ -26,18 +26,23 @@ import com.github.vatbub.finance.manager.database.BankTransactions.bookingText
 import com.github.vatbub.finance.manager.database.BankTransactions.category
 import com.github.vatbub.finance.manager.database.BankTransactions.currency
 import com.github.vatbub.finance.manager.database.BankTransactions.iban
+import com.github.vatbub.finance.manager.database.BankTransactions.recurringTransactionId
 import com.github.vatbub.finance.manager.database.BankTransactions.senderOrReceiver
 import com.github.vatbub.finance.manager.database.BankTransactions.usageText
 import com.github.vatbub.finance.manager.database.BankTransactions.valutaDate
 import com.github.vatbub.finance.manager.model.BankTransaction
 import com.github.vatbub.finance.manager.model.CurrencyAmount
+import com.github.vatbub.finance.manager.model.RecurringBankTransaction
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.statements.InsertStatement
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-fun ResultRow.toMemoryTransaction(tags: List<String>): BankTransaction = BankTransaction(
+fun ResultRow.toMemoryTransaction(
+    tags: List<String>,
+    recurringBankTransactions: Map<Int, RecurringBankTransaction>
+): BankTransaction = BankTransaction(
     this[bookingDate]?.toMemoryDate(),
     this[valutaDate]?.toMemoryDate(),
     this[senderOrReceiver],
@@ -47,7 +52,8 @@ fun ResultRow.toMemoryTransaction(tags: List<String>): BankTransaction = BankTra
     this[usageText],
     this[category],
     tags,
-    CurrencyAmount(this[amount], this[currency])
+    CurrencyAmount(this[amount], this[currency]),
+    this[recurringTransactionId]?.let { recurringBankTransactions[it] }
 )
 
 fun BankTransaction.toDatabaseBankTransaction(accountId: Int, statement: InsertStatement<EntityID<Int>>) =

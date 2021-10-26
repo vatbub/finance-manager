@@ -33,6 +33,7 @@ import javafx.scene.Parent
 import javafx.scene.Scene
 import javafx.scene.control.ComboBox
 import javafx.scene.layout.GridPane
+import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 import javafx.util.StringConverter
@@ -117,6 +118,7 @@ class ImportView {
 
     private fun initTransactionTableView() {
         vboxWithTransactionTable.children.add(transactionTableView)
+        VBox.setVgrow(transactionTableView, Priority.ALWAYS)
     }
 
     @FXML

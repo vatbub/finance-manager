@@ -26,16 +26,14 @@ import kotlin.math.max
 
 
 fun String?.similarityTo(other: String?): Double {
-    if (this == null || other == null) return 0.0
     if (this == other) return 1.0
+    if (this == null || other == null) return 0.0
     val maxLength = max(this.length, other.length).toDouble()
     return (maxLength - (this levenshtein other)) / maxLength
 }
 
-fun TransactionCategory?.similarityTo(other: TransactionCategory?): Double {
-    if (this == null || other == null) return 0.0
-    return if (this == other) 0.0 else 1.0
-}
+fun TransactionCategory?.similarityTo(other: TransactionCategory?): Double =
+    if (this == other) 1.0 else 0.0
 
 fun List<String>.similarityTo(other: List<String>): Double {
     if (this.isEmpty() && other.isEmpty()) return 1.0
@@ -45,13 +43,12 @@ fun List<String>.similarityTo(other: List<String>): Double {
 }
 
 fun CurrencyAmount?.similarityTo(other: CurrencyAmount?): Double {
-    if (this == null || other == null) return 0.0
-    if (this.currency!=other.currency) return  0.0
-    return this.amount.similarityTo(other.amount)
+    if (this?.currency != other?.currency) return 0.0
+    return this?.amount.similarityTo(other?.amount)
 }
 
 fun Double?.similarityTo(other: Double?): Double {
+    if (this == null && other == null) return 1.0
     if (this == null || other == null) return 0.0
-    if (this == other) return 1.0
-    return (this - other) / max(abs(this), abs(other))
+    return 1.0 / (abs(this - other) + 1.0)
 }

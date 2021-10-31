@@ -19,19 +19,28 @@
  */
 package com.github.vatbub.finance.manager.util
 
+import javafx.application.Platform
 import javafx.collections.ListChangeListener
 import javafx.collections.ObservableList
 
 fun <T> ObservableList<T>.bind(other: ObservableList<T>) {
     other.addListener(ListChangeListener { change ->
         while (change.next()) {
-            if (change.wasAdded()) this.addAll(change.from, change.addedSubList)
-            if (change.wasRemoved()) this.removeAll(change.removed)
-            if (change.wasPermutated()) {
-                this.indices.forEach { oldIndex ->
-                    this[change.getPermutation(oldIndex)] = this[oldIndex]
-                }
+            try {
+                handleChange(change)
+            } catch (e: IllegalStateException) {
+                Platform.runLater { handleChange(change) }
             }
         }
     })
+}
+
+private fun <T> ObservableList<T>.handleChange(change: ListChangeListener.Change<out T>) {
+    if (change.wasAdded()) this.addAll(change.from, change.addedSubList)
+    if (change.wasRemoved()) this.removeAll(change.removed)
+    if (change.wasPermutated()) {
+        this.indices.forEach { oldIndex ->
+            this[change.getPermutation(oldIndex)] = this[oldIndex]
+        }
+    }
 }

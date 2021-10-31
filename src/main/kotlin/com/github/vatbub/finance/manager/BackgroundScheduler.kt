@@ -145,7 +145,7 @@ class RunnableWithProgressUpdates<T>(
     private val block: RunnableWithProgressUpdates<T>.() -> T
 ) : Task<T>() {
     init {
-        if (message != null) updateMessage(taskMessage)
+        if (taskMessage != null) updateMessage(taskMessage)
 
         updateProgress(-1L, totalSteps)
     }
@@ -155,6 +155,8 @@ class RunnableWithProgressUpdates<T>(
             updateProgress(newValue, totalSteps)
         }
     }
+
+    public override fun updateMessage(value: String) = super.updateMessage(value)
 
     fun stepDone() {
         if (workDone < 0) workDone = 1
@@ -171,6 +173,6 @@ class RunnableWithProgressUpdates<T>(
 
         updateProgress(workDone, totalSteps)
 
-        return block(this)
+        return block(this).also { updateValue(it) }
     }
 }

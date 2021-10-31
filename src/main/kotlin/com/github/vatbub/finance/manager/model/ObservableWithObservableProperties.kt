@@ -27,8 +27,13 @@ import javafx.collections.ObservableList
 interface ObservableWithObservableProperties {
     val observableProperties: List<ObservableValue<*>>
 
-    fun addListenerToAllProperties(listener: ChangeListener<Any>) =
-        observableProperties.forEach { it.addListener(listener) }
+    fun addListenerToAllProperties(listener: ChangeListener<Any>): Unit =
+        observableProperties.forEach {
+            it.addListener(listener)
+            val currentValue = it.value ?: return@forEach
+            if (currentValue is ObservableWithObservableProperties)
+                currentValue.addListenerToAllProperties(listener)
+        }
 
     fun removeListenerFromAllProperties(listener: ChangeListener<Any>) =
         observableProperties.forEach { it.removeListener(listener) }

@@ -21,9 +21,14 @@ package com.github.vatbub.finance.manager.model
 
 import javafx.beans.property.SimpleStringProperty
 import javafx.beans.property.StringProperty
+import javafx.beans.value.ObservableValue
 
-class RecurringBankTransaction(val description: StringProperty) {
+class RecurringBankTransaction(val description: StringProperty) : ObservableWithObservableProperties {
     constructor(description: String) : this(SimpleStringProperty(description))
+
+    override val observableProperties: List<ObservableValue<*>> = listOf(
+        description
+    )
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

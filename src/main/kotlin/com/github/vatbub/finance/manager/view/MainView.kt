@@ -98,6 +98,9 @@ class MainView {
     private lateinit var editDataMenuItem: MenuItem
 
     @FXML
+    private lateinit var findRecurringTransactionsMenuItem: MenuItem
+
+    @FXML
     private lateinit var titledPaneBackgroundJobs: TitledPane
 
     private val taskProgressView by lazy { TaskProgressView<Task<*>>() }
@@ -120,6 +123,11 @@ class MainView {
     @FXML
     fun editAccountsAction() {
         AccountEditView.show()
+    }
+
+    @FXML
+    fun findRecurringTransactionsAction() {
+        RecurringTransactionFinderView.showWithNextSuggestion()
     }
 
     @FXML
@@ -175,6 +183,7 @@ class MainView {
         importMenu.disableProperty().bindAndMap(MemoryDataHolder.currentInstance) { it == null }
         editAccountsMenuItem.disableProperty().bindAndMap(MemoryDataHolder.currentInstance) { it == null }
         editDataMenuItem.disableProperty().bindAndMap(MemoryDataHolder.currentInstance) { it == null }
+        findRecurringTransactionsMenuItem.disableProperty().bindAndMap(MemoryDataHolder.currentInstance) { it == null }
 
         comboBoxLastTimeWindowUnit.items = FXCollections.observableArrayList(*AccountDisplayTimeUnit.values())
         comboBoxLastTimeWindowUnit.selectionModel.select(preferences[LastTimeWindowUnit])

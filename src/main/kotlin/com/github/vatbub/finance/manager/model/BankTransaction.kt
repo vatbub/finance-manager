@@ -90,7 +90,8 @@ class BankTransaction(
         bookingText,
         usageText,
         category,
-        amount
+        amount,
+        recurringBankTransaction
     )
     override val observableLists: List<ObservableList<*>> = listOf(tags)
 
@@ -130,8 +131,3 @@ class BankTransaction(
 
 typealias IBAN = String
 typealias BIC = String
-
-fun List<BankTransaction>.calculateSimilarities() = associateWith { transaction ->
-    this.filter { otherTransaction -> transaction != otherTransaction }
-        .associateWith { otherTransaction -> transaction similarityTo otherTransaction }
-}

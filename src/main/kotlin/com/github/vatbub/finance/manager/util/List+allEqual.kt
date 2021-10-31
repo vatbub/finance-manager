@@ -1,8 +1,8 @@
 /*-
  * #%L
- * magic-obs
+ * finance-manager
  * %%
- * Copyright (C) 2016 - 2021 Frederik Kammel
+ * Copyright (C) 2019 - 2021 Frederik Kammel
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,8 @@
  */
 package com.github.vatbub.finance.manager.util
 
-import javafx.beans.property.Property
-import javafx.beans.value.ObservableValue
-
-fun <In, Out> Property<Out>.bindAndMap(observable: ObservableValue<In>, block: (In?) -> Out) {
-    this.value = block(observable.value)
-    observable.addListener { _, _, newValue ->
-        this.value = block(newValue)
-    }
+fun <T> List<T>.allEqual(): Boolean {
+    if (this.isEmpty()) return false
+    val first = first()
+    return all { it == first }
 }

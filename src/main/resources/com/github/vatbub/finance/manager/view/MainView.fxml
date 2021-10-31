@@ -30,6 +30,9 @@
                                 </Menu>
                                 <MenuItem fx:id="editAccountsMenuItem" mnemonicParsing="false"
                                           onAction="#editAccountsAction" text="Edit accounts..."/>
+                                <MenuItem fx:id="findRecurringTransactionsMenuItem" mnemonicParsing="false"
+                                          onAction="#findRecurringTransactionsAction"
+                                          text="Find recurring transactions..."/>
                                 <MenuItem fx:id="editDataMenuItem" mnemonicParsing="false" onAction="#editDataAction"
                                           text="Edit data..."/>
                             </items>

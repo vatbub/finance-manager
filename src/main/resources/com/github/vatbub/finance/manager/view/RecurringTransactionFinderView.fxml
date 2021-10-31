@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<GridPane fx:id="rootPane" hgap="8.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity"
+          minWidth="-Infinity" prefHeight="500.0" prefWidth="777.0" vgap="8.0" xmlns="http://javafx.com/javafx/17"
+          xmlns:fx="http://javafx.com/fxml/1"
+          fx:controller="com.github.vatbub.finance.manager.view.RecurringTransactionFinderView">
+    <columnConstraints>
+        <ColumnConstraints hgrow="ALWAYS" maxWidth="1.7976931348623157E308" minWidth="-Infinity"/>
+        <ColumnConstraints hgrow="NEVER" maxWidth="-Infinity" minWidth="10.0"/>
+    </columnConstraints>
+    <rowConstraints>
+        <RowConstraints maxHeight="-Infinity" minHeight="-Infinity" vgrow="SOMETIMES"/>
+        <RowConstraints maxHeight="1.7976931348623157E308" minHeight="-Infinity" vgrow="ALWAYS"/>
+        <RowConstraints maxHeight="-Infinity" minHeight="-Infinity" vgrow="SOMETIMES"/>
+    </rowConstraints>
+    <children>
+        <Label text="The following transactions look similar. Select the ones which are recurring:"
+               GridPane.columnSpan="2147483647"/>
+        <TextField fx:id="textFieldDescription" promptText="Enter a description for the recurring transaction."
+                   GridPane.rowIndex="2"/>
+        <ButtonBar maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity"
+                   GridPane.columnIndex="1" GridPane.rowIndex="2">
+            <buttons>
+                <Button defaultButton="true" mnemonicParsing="false" onAction="#buttonSaveAction" text="Save"/>
+                <Button mnemonicParsing="false" onAction="#buttonSkipAction" text="Skip"/>
+                <Button cancelButton="true" mnemonicParsing="false" onAction="#buttonCancelAction" text="Cancel"/>
+            </buttons>
+        </ButtonBar>
+    </children>
+    <padding>
+        <Insets bottom="8.0" left="8.0" right="8.0" top="8.0"/>
+    </padding>
+</GridPane>
